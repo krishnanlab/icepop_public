@@ -1,7 +1,5 @@
 from pathlib import Path
 import scanpy as sc
-import pandas as pd
-import SEACells
 from MetaQ_sc import run_metaq
 from icepop.logging_config import logger
 
@@ -9,31 +7,6 @@ from icepop.logging_config import logger
 def celltype_frac(x, col_name):
     val_counts = x[col_name].value_counts()
     return val_counts.values[0] / val_counts.values.sum()
-
-
-def calc_stats(
-    adata,
-    build_kernel_on='X_pca', ct_key='cell_type', SEACells_label='metacell',
-    n_top_genes=2000, n_comp=50
-):
-    if build_kernel_on not in adata.obsm.keys():
-        sc.pp.highly_variable_genes(adata, n_top_genes=n_top_genes)
-        sc.tl.pca(adata, n_comps=n_comp, use_highly_variable=True)
-
-    # compactness, normalized and reverted
-    compactness = SEACells.evaluate.compactness(
-        adata, low_dim_embedding=build_kernel_on, SEACells_label=SEACells_label
-    )
-    # separation, normalized and reverted
-    separation = SEACells.evaluate.separation(
-        adata,
-        low_dim_embedding=build_kernel_on, nth_nbr=1, SEACells_label=SEACells_label
-    )
-    # cell type purity
-    celltype_fraction = adata.obs.groupby(SEACells_label).apply(lambda x: celltype_frac(x, ct_key))
-    celltype = adata.obs.groupby(SEACells_label).apply(lambda x: x[ct_key].value_counts().index[0])
-    ct_purity = pd.concat([celltype, celltype_fraction], axis=1).rename(columns={0: ct_key, 1: 'purity'})
-    return pd.concat([compactness, separation, ct_purity], axis=1)
 
 
 def metacell(
@@ -103,41 +76,3 @@ def metacell(
     with open(f'{outdir}/mc_assign.csv', 'w') as f:
         for i in metacellid_adata.obs['metacell']:
             f.write(f'metacell-{i}\n')
-
-    # normalize data
-    sc.pp.normalize_total(adata, target_sum=1e4)
-    sc.pp.log1p(adata)
-
-    # summary stats using SEACell
-    stats_df = calc_stats(adata)
-    stats_df.to_csv(f'{outdir}/mc_stats.csv', header=True, index=True)
-
-    # report mc stats
-    if report_stat:
-        # report stats
-        logger.info('Compactness stats:')
-        desc = stats_df['compactness'].describe()
-        logger.info(
-            "count=%d mean=%.4f std=%.4f min=%.4f "
-            "25%%=%.4f median=%.4f 75%%=%.4f max=%.4f",
-            desc['count'], desc['mean'], desc['std'], desc['min'],
-            desc['25%'], desc['50%'], desc['75%'], desc['max']
-        )
-
-        logger.info('Separation stats:')
-        desc = stats_df['separation'].describe()
-        logger.info(
-            "count=%d mean=%.4f std=%.4f min=%.4f "
-            "25%%=%.4f median=%.4f 75%%=%.4f max=%.4f",
-            desc['count'], desc['mean'], desc['std'], desc['min'],
-            desc['25%'], desc['50%'], desc['75%'], desc['max']
-        )
-
-        logger.info('Cell type purity stats:')
-        desc = stats_df['purity'].describe()
-        logger.info(
-            "count=%d mean=%.4f std=%.4f min=%.4f "
-            "25%%=%.4f median=%.4f 75%%=%.4f max=%.4f",
-            desc['count'], desc['mean'], desc['std'], desc['min'],
-            desc['25%'], desc['50%'], desc['75%'], desc['max']
-        )

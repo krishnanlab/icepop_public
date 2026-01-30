@@ -1,14 +1,13 @@
 [tool.poetry]
 name = "icepop"
 version = "0.1.0"
-description = "Informative cell population"
+description = "ICePop: metacell-based disease association framework"
 authors = ["yhadevol <yh_adevol@hotmail.com>"]
 license = "BSD 2-Clause License"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.11.3"
-seacells = "^0.3.3"
+python = ">=3.11,<3.12"
 ipython = "^8.31.0"
 notebook = "^7.3.2"
 ipyparallel = "^9.0.0"
@@ -36,11 +35,8 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 icepop = "icepop.cli.main:main"
 
-[project.scripts]
-icepop = "icepop.cli.main:main"
-
 [project]
 name = "icepop"
 version = "0.1.0"
 description = "ICePop: metacell-based disease association framework"
-requires-python = "==3.11.3"
+requires-python = ">=3.11,<3.12"
