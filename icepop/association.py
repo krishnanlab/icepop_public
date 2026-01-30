@@ -59,7 +59,7 @@ def association(
 
     # output name
     if trait_name is None:
-        trait_name = Path(magmaz).name.replace('.gene.out', '')
+        trait_name = Path(magmaz).name.replace('.genes.out', '')
     metacell_res = f'{outdir}/metacell__trait-{trait_name}.csv'
     celltype_res = f'{outdir}/celltype__trait-{trait_name}.csv'
 
