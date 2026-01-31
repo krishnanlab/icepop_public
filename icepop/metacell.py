@@ -1,5 +1,6 @@
 from pathlib import Path
 import scanpy as sc
+import pandas as pd
 from MetaQ_sc import run_metaq
 from icepop.logging_config import logger
 
@@ -16,7 +17,6 @@ def metacell(
     save_name: str = 'metaq_res',
     ct_key: str = 'cell_type',
     device: str = 'cuda',
-    report_stat: bool = True
 ):
     adata = sc.read_h5ad(h5ad)
 
@@ -66,13 +66,19 @@ def metacell(
                 f"[INFO] MetaQ evaluation failed (celltype mapping), ignored: {e}"
             )
 
-    # add metaq
-    metacellid_adata = sc.read(metacellids_h5ad)
-
-    # add metacell into adata
-    adata.obs['metacell'] = [f'metacell-{i}' for i in metacellid_adata.obs['metacell']]
-
     # save metacell assignment
+    metacellid_adata = sc.read(metacellids_h5ad)
     with open(f'{outdir}/mc_assign.csv', 'w') as f:
         for i in metacellid_adata.obs['metacell']:
             f.write(f'metacell-{i}\n')
+
+    # purity stats
+    adata.obs['metacell'] = [f'metacell-{i}' for i in metacellid_adata.obs['metacell']]
+    freq_df = pd.crosstab(adata.obs[ct_key], adata.obs['metacell'])
+    freq_df = freq_df.div(freq_df.sum(0))
+
+    mc2ct_df = pd.DataFrame({
+        "cell_type": freq_df.idxmax(axis=0),
+        "purity": freq_df.max(axis=0),
+    })
+    mc2ct_df.to_csv(f'{outdir}/mc_stats.csv', header=True, index=True)
