@@ -5,6 +5,8 @@ import scanpy as sc
 from icepop.specificity_score import specificity_score
 from icepop.convert_score import CrossSpeciesScoreConverter
 from icepop.model import MetacellAssoc
+from icepop.logging_config import logger
+from time import time
 
 
 def association(
@@ -18,12 +20,17 @@ def association(
     ct_key: str = 'cell_type',
     trait_name: str = None,
     n_perm: int = 1000,
-    min_purity: float = 0.2,
     q_thres: float = 0.1
 ):
+    t0 = time()
+    logger.info("Starting association analysis")
+
     # load data and mc assignment
+    logger.info("Loading h5ad and metacell assignment")
     adata = sc.read_h5ad(h5ad)
     adata.obs['metacell'] = pd.read_csv(mc_assign, header=None)[0].values
+    logger.info(f"Loaded adata: n_cells={adata.n_obs}, n_genes={adata.n_vars}")
+    logger.info("Number of metacells %d" % (adata.obs['metacell'].unique().size))
 
     # normalize data
     sc.pp.normalize_total(adata, target_sum=1e4)
@@ -35,9 +42,12 @@ def association(
     # check if metacell columns in adata
     # get spec score
     if spec_score is not None:
+        logger.info("Loading precomputed metacell specificity scores")
         f = np.load(spec_score, allow_pickle=True)
         adata.uns['spec_score'] = pd.DataFrame(f['score'], index=f['mc'], columns=f['genes'])
     else:
+        logger.info("Computing metacell specificity scores")
+        t_spec = time()
         spec = specificity_score(adata, n_jobs=n_jobs)
         spec.get_metacell_spec_score()
         np.savez_compressed(
@@ -46,11 +56,14 @@ def association(
             mc=adata.uns['spec_score'].index.values,
             genes=adata.uns['spec_score'].columns.values,
         )
+        logger.info(f"Finished in {(time() - t_spec) / 60:.2f} min")
 
     # translate ID
+    logger.info(f"Converting specificity scores across species ({sp})")
     score_converter = CrossSpeciesScoreConverter(adata, sp=sp)
     mc_spec_score = score_converter.convert_score_across_species(adata.uns['spec_score'], normed=False)
     metacells = np.asarray(mc_spec_score.index)
+    logger.info(f"Converted score matrix: {mc_spec_score.shape}")
 
     # get metacell freq
     freq_df = pd.crosstab(adata.obs[ct_key], adata.obs['metacell'])
@@ -60,8 +73,9 @@ def association(
     # output name
     if trait_name is None:
         trait_name = Path(magmaz).name.replace('.genes.out', '')
-    metacell_res = f'{outdir}/metacell__trait-{trait_name}.csv'
-    celltype_res = f'{outdir}/celltype__trait-{trait_name}.csv'
+    metacell_out = f'{outdir}/metacell__trait-{trait_name}.csv'
+    celltype_out = f'{outdir}/celltype__trait-{trait_name}.csv'
+    dfbs_out = f'{outdir}/dfbs__trait-{trait_name}.npz'
 
     # align gene set between magma z and sc data
     magmaz_df = pd.read_csv(magmaz, header=0, index_col=0, sep=r'\s+')
@@ -69,18 +83,31 @@ def association(
     shared_genes = magmaz_df.index.intersection(mc_spec_score.columns)
     y = np.asarray(magmaz_df.loc[shared_genes, 'ZSTAT'])
     X = mc_spec_score.loc[:, shared_genes].to_numpy()
+    logger.info(f"Shared genes between MAGMA and scRNA: {len(shared_genes)}")
 
+    t_fit = time()
+    logger.info(
+        f"Running MetacellAssoc "
+        f"(n_perm={n_perm}, n_jobs={n_jobs})"
+    )
     # model fitting
     assoc = MetacellAssoc(
         n_perm=n_perm, n_jobs=n_jobs,
-        min_purity=min_purity, q_thres=q_thres,
-        ct_key=ct_key
+        q_thres=q_thres, ct_key=ct_key
     )
-    ct_df, mc_df = assoc.fit(
+    ct_df, mc_df, ctdfbs = assoc.fit(
         X, y, freq_df,
         adata.obs.loc[:, ['metacell', ct_key]].copy()
     )
+    logger.info(f"Finished in {(time() - t_fit) / 60:.2f} min")
 
     # save output
-    mc_df.to_csv(metacell_res, header=True, index=False)
-    ct_df.to_csv(celltype_res, header=True, index=False)
+    mc_df.to_csv(metacell_out, header=True, index=False)
+    ct_df.to_csv(celltype_out, header=True, index=False)
+    np.savez_compressed(
+        dfbs_out,
+        dfbs=ctdfbs,
+        celltypes=freq_df.index.values,
+        genes=mc_spec_score.columns.values
+    )
+    logger.info(f"Assoication analysis finished in {(time() - t0) / 60:.2f} min")
