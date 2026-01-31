@@ -100,10 +100,6 @@ def _lr_util(args):
     return beta, se
 
 
-def min_max_norm(arr):
-    return (arr - arr.min()) / (arr.max() - arr.min())
-
-
 # ============================================================
 # 2. Permutation-estimated covariance (core)
 # ============================================================
@@ -216,7 +212,6 @@ class MetacellAssoc:
         n_jobs: int = 20,
         eps: float = 1e-12,
         random_state: int = 42,
-        min_purity: float = 0.2,
         q_thres: float = 0.1,
         ct_key: str = 'cell_type'
     ):
@@ -224,7 +219,6 @@ class MetacellAssoc:
         self.n_jobs = n_jobs
         self.eps = eps
         self.random_state = random_state
-        self.min_purity = min_purity
         self.q_thres = q_thres
         self.ct_key = ct_key
 
@@ -265,7 +259,7 @@ class MetacellAssoc:
         # Metacell-level association
         # --------------------------------
         # get mc beta and se
-        beta_hat, se_hat, self.dfb = _linear_reg(X, y, eps=self.eps, dfb=True)
+        beta_hat, se_hat, dfb = _linear_reg(X, y, eps=self.eps, dfb=True)
 
         # estimate cov of metacell beta
         beta_perm, se_perm = _run_parallel_lr(
@@ -293,17 +287,17 @@ class MetacellAssoc:
         # --------------------------------
         sig_w = norm.cdf(z)
 
-        self.metacell_weight = {}
+        metacell_weight = {}
         for ct, f in freq_df.iterrows():
             w = sig_w * np.asarray(f, dtype=np.float32)
             tot = w.sum()
-            self.metacell_weight[ct] = w / (tot if tot > 0 else 1e-12)
+            metacell_weight[ct] = w / (tot if tot > 0 else 1e-12)
 
         # --------------------------------
         # null t distribution for each cell type
         # --------------------------------
         t0 = time()
-        logger.info("[perm-null] start building null t distributions")
+        logger.info("[perm-null] start building null distributions of association")
         metacell_perm_t = {}
         sig_w_perm = norm.cdf(beta_perm / se_perm)
         for celltype, f in freq_df.iterrows():
@@ -333,8 +327,10 @@ class MetacellAssoc:
         # --------------------------------
         # Aggregate to cell-type level
         # --------------------------------
+        t0 = time()
+        logger.info(f"[Aggregate] Aggregate metacell association to {self.ct_key} level")
         ct_res = []
-        for ct, f in self.metacell_weight.items():
+        for ct, f in metacell_weight.items():
             beta_ct, se_ct, z_ct, p_ct = _celltype_from_metacell(
                 beta_hat, cov_beta, f, metacell_perm_t[ct]
             )
@@ -346,12 +342,13 @@ class MetacellAssoc:
 
         # multiple testing on cell type
         ct_df['q'] = multipletests(ct_df['p'], method="fdr_bh")[1]
+        logger.info(f"[mixture] finished in {(time() - t0) / 60:.2f} min")
 
         # --------------------------------
         # Estimate mixture of association
         # --------------------------------
         t0 = time()
-        print("[mixture] Estimate significance of metacells within cell type")
+        logger.info(f"[mixture] Estimate significance of metacells within {self.ct_key}")
         mc_p = mc_df['p'].values
         metacells = freq_df.columns.values
         sig_pct_list = []
@@ -373,6 +370,14 @@ class MetacellAssoc:
                     sig_pct = np.mean(c_q <= self.q_thres)
             sig_pct_list.append(sig_pct)
         ct_df['sig_pct'] = sig_pct_list
-        print(f"[mixture] finished in {(time() - t0) / 60:.2f} min")
+        logger.info(f"[mixture] finished in {(time() - t0) / 60:.2f} min")
 
-        return ct_df.sort_values("q", ignore_index=True), mc_df
+        # --------------------------------
+        # Calculate influence per cell type
+        # --------------------------------
+        t0 = time()
+        logger.info(f"[influence] Get influence score for given {self.ct_key}")
+        ctdfbs = np.vstack([i for i in metacell_weight.values()]) @ dfb / ct_df['se'].values[:, None]
+        logger.info(f"[influence] finished in {(time() - t0) / 60:.2f} min")
+
+        return ct_df.sort_values("q", ignore_index=True), mc_df, ctdfbs

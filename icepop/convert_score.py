@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 from icepop.data import HomologyData
-from icepop.logging_config import logger
 
 
 class CrossSpeciesScoreConverter:
@@ -18,8 +17,6 @@ class CrossSpeciesScoreConverter:
         self.sp = sp
 
     def generate_cross_sp_matrix(self):
-        logger.info('Convert exp specificity score across species through homology')
-
         # get human to model sp genes map
         ortho_map = HomologyData(sp=self.sp).load()
 
