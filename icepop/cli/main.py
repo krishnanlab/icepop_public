@@ -1,16 +1,25 @@
 #!/usr/bin/env python
 import fire
+import logging
 from icepop.metacell import metacell
 from icepop.association import association
-# from icepop.influence import influence
 # from icepop.interactive import interactive
 
 
-def main():
+def setup_logging(verbose=False):
+    level = logging.DEBUG if verbose else logging.INFO
+
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+
+
+def main(verbose: bool = False):
+    setup_logging(verbose)
     fire.Fire({
         "metacell": metacell,
         "association": association,
-        # "influence": influence,
         # "interactive": interactive,
     })
 

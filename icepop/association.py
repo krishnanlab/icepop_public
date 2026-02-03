@@ -24,13 +24,28 @@ def association(
 ):
     t0 = time()
     logger.info("Starting association analysis")
+    logger.info(
+        f"Inputs: h5ad={h5ad}, mc_assign={mc_assign}, magmaz={magmaz}"
+    )
+    logger.info(
+        f"Params: ct_key={ct_key}, sp={sp}, n_perm={n_perm}, "
+        f"q_thres={q_thres}, n_jobs={n_jobs}"
+    )
 
     # load data and mc assignment
     logger.info("Loading h5ad and metacell assignment")
     adata = sc.read_h5ad(h5ad)
-    adata.obs['metacell'] = pd.read_csv(mc_assign, header=None)[0].values
     logger.info(f"Loaded adata: n_cells={adata.n_obs}, n_genes={adata.n_vars}")
+    logger.info("Number of %s: %d" % (ct_key, adata.obs[ct_key].unique().size))
+
+    adata.obs['metacell'] = pd.read_csv(mc_assign, header=None)[0].values
     logger.info("Number of metacells %d" % (adata.obs['metacell'].unique().size))
+    logger.info(
+        f"Metacell sizes: "
+        f"min={adata.obs['metacell'].value_counts().min()}, "
+        f"median={adata.obs['metacell'].value_counts().median()}, "
+        f"max={adata.obs['metacell'].value_counts().max()}"
+    )
 
     # normalize data
     sc.pp.normalize_total(adata, target_sum=1e4)
@@ -69,6 +84,13 @@ def association(
     freq_df = pd.crosstab(adata.obs[ct_key], adata.obs['metacell'])
     freq_df = freq_df.loc[:, metacells]
     freq_df = freq_df.div(freq_df.sum(0))
+
+    # check stats
+    purity = freq_df.max(axis=0)
+    logger.info(
+        f"Metacell purity: "
+        f"{(purity >= 0.2).sum()}/{len(purity)} pass min_purity=0.2"
+    )
 
     # output name
     if trait_name is None:
