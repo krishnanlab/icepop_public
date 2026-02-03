@@ -1,8 +1,6 @@
 from pathlib import Path
 import pandas as pd
 import requests
-from icepop.logging_config import logger
-from time import time
 
 
 class HomologyData:

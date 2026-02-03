@@ -1,4 +1,17 @@
 #!/usr/bin/env python
+"""
+ICePop command-line interface.
+
+This module defines the top-level CLI entry point for ICePop,
+exposing subcommands for metacell construction, association testing,
+and downstream analyses.
+
+Example
+-------
+icepop metacell --h5ad data.h5ad --outfile results/metaq
+icepop association --h5ad data.h5ad --magmaz trait.genes.out
+"""
+
 import fire
 import logging
 from icepop.metacell import metacell

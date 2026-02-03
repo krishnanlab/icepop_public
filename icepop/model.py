@@ -6,14 +6,15 @@ from multiprocessing import Pool
 from multiprocessing.shared_memory import SharedMemory
 from scipy.sparse import csr_matrix
 from time import time
-from icepop.logging_config import logger
 from scipy.stats import norm
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================
 # Core linear regression
 # ============================================================
-
 def _linear_reg(
     X: np.ndarray,
     y: np.ndarray,

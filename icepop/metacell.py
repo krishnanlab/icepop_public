@@ -2,7 +2,9 @@ from pathlib import Path
 import scanpy as sc
 import pandas as pd
 from MetaQ_sc import run_metaq
-from icepop.logging_config import logger
+import logging
+
+logger = logging.getLogger("icepop.metacell")
 
 
 def metacell(
@@ -13,6 +15,48 @@ def metacell(
     ct_key: str = 'cell_type',
     device: str = 'cuda',
 ):
+    """
+    Run metacell-based gene–trait association analysis.
+
+    This command integrates single-cell metacell specificity scores
+    with MAGMA gene-level statistics to infer disease- or trait-associated
+    cell types.
+
+    Parameters
+    ----------
+    h5ad : str
+        Input AnnData file containing single-cell expression data.
+    mc_assign : str
+        CSV file mapping cells to metacell assignments.
+    magmaz : str
+        MAGMA gene-level association file (*.genes.out).
+    outdir : str
+        Output directory for association results.
+    spec_score : str, optional
+        Precomputed metacell specificity score file (.npz).
+        If not provided, specificity scores are computed.
+    n_jobs : int, default=20
+        Number of parallel workers.
+    sp : str, default='mmusculus'
+        Species identifier for gene ID conversion.
+    ct_key : str, default='cell_type'
+        Column in `adata.obs` defining cell types.
+    trait_name : str, optional
+        Trait name used for output file naming.
+    n_perm : int, default=1000
+        Number of permutations for null distribution estimation.
+    min_purity : float, default=0.2
+        Minimum metacell purity threshold.
+    q_thres : float, default=0.1
+        FDR threshold for significance.
+
+    Outputs
+    -------
+    - metacell-level association results (CSV)
+    - cell-type–level association results (CSV)
+    - influence diagnostics (NPZ)
+    """
+
     adata = sc.read_h5ad(h5ad)
 
     # mkdir

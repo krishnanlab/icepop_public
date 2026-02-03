@@ -3,10 +3,12 @@ import pandas as pd
 from scipy import stats
 from time import time
 from scipy.sparse import csr_matrix
-from icepop.logging_config import logger
 from collections import defaultdict
 from multiprocessing import Pool
 from multiprocessing.shared_memory import SharedMemory
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class specificity_score:
