@@ -5,11 +5,6 @@ from MetaQ_sc import run_metaq
 from icepop.logging_config import logger
 
 
-def celltype_frac(x, col_name):
-    val_counts = x[col_name].value_counts()
-    return val_counts.values[0] / val_counts.values.sum()
-
-
 def metacell(
     h5ad: str,
     outdir: str,
