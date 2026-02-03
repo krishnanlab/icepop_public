@@ -54,8 +54,6 @@ def association(
         Trait name used for output file naming.
     n_perm : int, default=1000
         Number of permutations for null distribution estimation.
-    min_purity : float, default=0.2
-        Minimum metacell purity threshold.
     q_thres : float, default=0.1
         FDR threshold for significance.
 
