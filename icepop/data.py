@@ -6,7 +6,7 @@ from time import time
 
 
 class HomologyData:
-    def __init__(self, data_dir='./cache', sp='10090'):
+    def __init__(self, data_dir='./cache', sp='mmusculus'):
         self.data_dir = data_dir
         self.sp = sp
 
@@ -63,10 +63,10 @@ class HomologyData:
         human_to_sp_count = df.groupby("GeneID")["Other_GeneID"].nunique()
         sp_to_human_count = df.groupby("Other_GeneID")["GeneID"].nunique()
 
-        # Identify one-to-one and many-to-one mappings
+        # Identify one-to-one mappings
         filtered_df = df[
             (human_to_sp_count == 1).reindex(df["GeneID"]).values &
-            (sp_to_human_count >= 1).reindex(df["Other_GeneID"]).values
+            (sp_to_human_count == 1).reindex(df["Other_GeneID"]).values
         ]
 
         ortho_map = {}
