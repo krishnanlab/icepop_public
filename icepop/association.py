@@ -172,6 +172,6 @@ def association(
         dfbs_out,
         dfbs=ctdfbs,
         celltypes=freq_df.index.values,
-        genes=mc_spec_score.columns.values
+        genes=shared_genes
     )
     logger.info(f"Assoication analysis finished in {(time() - t0) / 60:.2f} min")
