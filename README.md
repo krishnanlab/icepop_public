@@ -1,40 +1,47 @@
-# icepop_public
-public repo for icepop
+# ICePop: Informative Cell Population
+This repository contains source code for ICEpop ([doi](TBD))
 
-# extract metacells
+# Step 1: Extract metacells
+```
 poetry run icepop metacell \
     --h5ad ../data/mouse_colon/mouse_colon_cnt.h5ad \
     --outdir ../results/mouse_colon_mc \
     --save_name mouse_colon
+```
 
 ## input options
---h5ad count in .X of h5ad
---outdir outdir
---save_name prefix of metaq output under ./save/*, do not write a path
+
+1. `--h5ad` single-cell expression count in .X of h5ad
+2. `--outdir` output directory path
+3. `--save_name` prefix of metaq output under `./save/*`, do not write a path
 
 this step need gpu for faster speed
 
 ## output
 metacell assignment
 
-# get association, mixture and influence diagnoistics
+# Step 2: Get association, mixture and influence diagnoistics
+```
 poetry run icepop association \
     --h5ad ../data/TM_FACS/TM_FACS_cnt.h5ad \
     --mc_assign ../results/TM_FACS_mc/mc_assign.csv \
     --magmaz ../data/TM_FACS/magmaz/asd.genes.out \
     --spec_score ../results/TM_FACS_mc/mc_spec_score.npz \
     --outdir ./test
+```
 
 ## input options
---h5ad count in .X of h5ad
---mc_assign metacell assignment from last step
---magmaz magmaz sum stat
---spec_score spec score of metacell, will auto generated in the first run
---outdir outdir
+
+1. `--h5ad` single-cell expression count in .X of h5ad
+2. `--mc_assign` metacell assignment output from last step
+3. `--magmaz` [magmaz](https://doi.org/10.1371/journal.pcbi.1004219) summary statistics
+4. `--spec_score` specificity score of metacell, will auto generated in Step 1
+5. `--outdir` output directory path
 
 ## output
-outdir/celltype__trait-*.csv
-outdir/dfbs__trait-*.npz
-outdir/metacell__trait-*.csv
 
-* is trait name we assume magmaz file name is *.genes.out
+1. `outdir/celltype__trait-*.csv`
+2. `outdir/dfbs__trait-*.npz`
+3. `outdir/metacell__trait-*.csv`
+
+where `*` is trait name we assume magmaz file name is `*.genes.out`
