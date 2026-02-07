@@ -119,6 +119,14 @@ def association(
     logger.info(f"Converting specificity scores across species ({sp})")
     score_converter = CrossSpeciesScoreConverter(adata, sp=sp)
     mc_spec_score = score_converter.convert_score_across_species(adata.uns['spec_score'], normed=False)
+    if mc_spec_score.shape[1] == 0:
+        logger.error(
+            "Converted spec-score matrix is empty. "
+            "shape=%s. "
+            "Likely causes: gene ID mismatch, wrong spec_score input",
+            mc_spec_score.shape,
+        )
+        raise ValueError("Empty spec-score matrix after conversion")
     metacells = np.asarray(mc_spec_score.index)
     logger.info(f"Converted score matrix: {mc_spec_score.shape}")
 
