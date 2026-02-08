@@ -5,14 +5,20 @@ This repository contains source code for ICePop ([DOI](TBD))
 ### Dependencies
 ICePop dependencies are handled by [poetry](https://python-poetry.org/) with `python>=3.11,<3.12`
 To install poetry, please follow the [instructions on poetry's home page](https://python-poetry.org/docs/#installation).
+Then run the following command to 
+- create a virtual environment
+- install all dependencies from poetry.lock
+- install icepop in editable mode:
 ```
-poetry install poetry.lock
+poetry install
 ```
 
-### Install ICePop
+### [Optional] Using icepop in another local project 
+If you want to use this repository as a local editable dependency in a different Poetry project:
 ```
 poetry add --editable /path/to/icepop
 ```
+where the path must point to the folder containing `pyproject.toml`
 
 ## Run ICePop
 ### Step 1: Extract metacells
