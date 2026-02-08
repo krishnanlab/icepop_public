@@ -1,7 +1,22 @@
 # ICePop: Informative Cell Population
-This repository contains source code for ICEpop ([doi](TBD))
+This repository contains source code for ICePop ([DOI](TBD))
 
-# Step 1: Extract metacells
+# Installation
+## Dependencies
+- ICePop dependencies are handled by [poetry](https://python-poetry.org/) with `python>=3.11,<3.12`
+To install poetry, please follow the [instructions on poetry's home page](https://python-poetry.org/docs/#installation).
+- Install dependencies
+```
+poetry install poetry.lock
+```
+
+## Install ICePop
+```
+poetry add --editable /path/to/icepop
+```
+
+# Run ICePop
+## Step 1: Extract metacells
 ```
 poetry run icepop metacell \
     --h5ad ../data/mouse_colon/mouse_colon_cnt.h5ad \
@@ -9,7 +24,7 @@ poetry run icepop metacell \
     --save_name mouse_colon
 ```
 
-## input options
+### input options
 
 1. `--h5ad` single-cell expression count in .X of h5ad
 2. `--outdir` output directory path
@@ -17,10 +32,10 @@ poetry run icepop metacell \
 
 this step need gpu for faster speed
 
-## output
+### output
 metacell assignment
 
-# Step 2: Get association, mixture and influence diagnoistics
+## Step 2: Get association, mixture and influence diagnoistics
 ```
 poetry run icepop association \
     --h5ad ../data/TM_FACS/TM_FACS_cnt.h5ad \
@@ -30,7 +45,7 @@ poetry run icepop association \
     --outdir ./test
 ```
 
-## input options
+### input options
 
 1. `--h5ad` single-cell expression count in .X of h5ad
 2. `--mc_assign` metacell assignment output from last step
@@ -38,7 +53,7 @@ poetry run icepop association \
 4. `--spec_score` specificity score of metacell, will auto generated in Step 1
 5. `--outdir` output directory path
 
-## output
+### output
 
 1. `outdir/celltype__trait-*.csv`
 2. `outdir/dfbs__trait-*.npz`
