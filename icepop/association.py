@@ -174,8 +174,11 @@ def association(
     logger.info(f"Finished in {(time() - t_fit) / 60:.2f} min")
 
     # save output
+    # metacell-level association results
     mc_df.to_csv(metacell_out, header=True, index=False)
+    # cell-type-level association results
     ct_df.to_csv(celltype_out, header=True, index=False)
+    # influence diagnostics
     np.savez_compressed(
         dfbs_out,
         dfbs=ctdfbs,

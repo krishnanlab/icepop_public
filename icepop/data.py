@@ -4,7 +4,48 @@ import requests
 
 
 class HomologyData:
+    """
+    Load and manage gene orthology relationships between human and a model species.
+
+    This class downloads (if necessary) and parses the NCBI
+    ``gene_orthologs.gz`` table to extract **one-to-one ortholog mappings**
+    between human genes and genes from a specified organism.
+
+    Parameters
+    ----------
+    data_dir : str or pathlib.Path, default="./cache"
+        Directory used to store the downloaded ortholog file.
+    sp : str, default="mmusculus"
+        Species name (common NCBI short name). Must be one of the
+        supported organisms in the internal mapping.
+
+    Raises
+    ------
+    ValueError
+        If the provided species identifier is not supported.
+    RuntimeError
+        If the ortholog file download fails.
+
+    Notes
+    -----
+    - Ortholog data are retrieved from the NCBI FTP server:
+      https://ftp.ncbi.nlm.nih.gov/gene/DATA/gene_orthologs.gz
+    - Only **one-to-one human ↔ species orthologs** are retained.
+    - Returned mappings are suitable for cross-species projection of
+      gene-level statistics (e.g., expression specificity, enrichment,
+      or association scores).
+    """
     def __init__(self, data_dir='./cache', sp='mmusculus'):
+        """
+        Initialize the homology data loader and ensure ortholog data exist.
+
+        Parameters
+        ----------
+        data_dir : str or pathlib.Path, default="./cache"
+            Local directory where the ortholog file will be stored.
+        sp : str, default="mmusculus"
+            Species identifier used to select ortholog relationships.
+        """
         self.data_dir = data_dir
         self.sp = sp
 
@@ -43,6 +84,17 @@ class HomologyData:
             self.download()
 
     def download(self):
+        """
+        Download the NCBI gene ortholog dataset if not already present.
+
+        The file is retrieved from the official NCBI FTP endpoint and
+        saved to ``data_dir`` as ``gene_orthologs.gz``.
+
+        Raises
+        ------
+        RuntimeError
+            If the HTTP request fails or returns a non-200 status code.
+        """
         Path(self.data_dir).mkdir(parents=True, exist_ok=True)
         self.url = 'https://ftp.ncbi.nlm.nih.gov/gene/DATA/gene_orthologs.gz'
         response = requests.get(self.url)
@@ -53,7 +105,25 @@ class HomologyData:
             raise RuntimeError(f"Failed to download file: {self.url}")
 
     def load(self):
-        '''get one to one and many to one ortholog from a model species to human'''
+        """
+        Load one-to-one ortholog mappings between human and the selected species.
+
+        Returns
+        -------
+        dict[str, list[str]]
+            Dictionary mapping **human GeneID → list of species GeneIDs**.
+            Only strict **one-to-one** ortholog relationships are included.
+
+        Notes
+        -----
+        Processing steps:
+
+        1. Read the NCBI ``gene_orthologs.gz`` table.
+        2. Filter rows to human (tax_id = 9606) and the chosen species.
+        3. Compute gene mapping multiplicities in both directions.
+        4. Retain only **one-to-one** ortholog pairs.
+        5. Return mappings suitable for cross-species score projection.
+        """
         df = pd.read_csv(self.ortho_file, header=0, index_col=None, sep='\t', dtype=str)
 
         df = df[(df['#tax_id'] == '9606') & (df['Other_tax_id'] == self.sp)]

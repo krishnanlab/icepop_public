@@ -20,6 +20,20 @@ from icepop.association import association
 
 
 def setup_logging(verbose=False):
+    """
+    Configure global logging behavior for the ICePop CLI.
+
+    Parameters
+    ----------
+    verbose : bool, default=False
+        If ``True``, sets logging level to ``DEBUG`` for detailed output.
+        Otherwise, uses ``INFO`` level for standard progress messages.
+
+    Notes
+    -----
+    This function initializes the root logger using ``logging.basicConfig``.
+    It should be called before invoking any CLI subcommands.
+    """
     level = logging.DEBUG if verbose else logging.INFO
 
     logging.basicConfig(
@@ -29,6 +43,24 @@ def setup_logging(verbose=False):
 
 
 def main(verbose: bool = False):
+    """
+    Entry point for the ICePop command-line interface.
+
+    This function initializes logging and dispatches CLI subcommands
+    using the ``fire`` library.
+
+    Parameters
+    ----------
+    verbose : bool, default=False
+        Enable debug-level logging output.
+
+    Available Subcommands
+    ---------------------
+    metacell
+        Construct metacells from single-cell expression data.
+    association
+        Perform gene-level and cell-type–level association testing.
+    """
     setup_logging(verbose)
     fire.Fire({
         "metacell": metacell,

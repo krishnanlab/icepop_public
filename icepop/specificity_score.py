@@ -13,7 +13,33 @@ logger = logging.getLogger(__name__)
 
 class specificity_score:
     """
-    class to calculate expression specificity score
+    Compute gene expression specificity scores across metacells or cell types.
+
+    This class calculates, for each gene, the probability that expression
+    within a given group (metacell or cell type) is higher than expression
+    in the remaining cells. The computation is optimized for sparse matrices
+    and parallel execution using shared memory.
+
+    Parameters
+    ----------
+    adata : AnnData
+        Annotated single-cell dataset containing:
+
+        - ``adata.X`` → gene expression matrix (cells × genes)
+        - ``adata.obs['metacell']`` → metacell labels (for metacell scoring)
+        - ``adata.obs['cell_type']`` → cell type labels (for cell-type scoring)
+    n_jobs : int, default=1
+        Number of parallel worker processes used for score computation.
+
+    Notes
+    -----
+    - Uses sparse CSR representation for memory efficiency.
+    - Parallel workers attach to shared memory instead of copying matrices.
+    - Final specificity score combines:
+
+        **Normal CDF(z-statistic) × expression coverage**
+
+      followed by column-wise normalization.
     """
 
     def __init__(
@@ -21,12 +47,33 @@ class specificity_score:
         adata,
         n_jobs=1,
     ):
+        """Initialize specificity score calculator."""
         self.adata = adata
         self.n_jobs = n_jobs
 
     @staticmethod
     def calculate_statistics(data):
-        '''calculate mean and variance'''
+        """
+        Compute per-gene mean and variance from a sparse matrix.
+
+        Parameters
+        ----------
+        data : scipy.sparse matrix (genes × cells)
+            Sparse expression matrix subset.
+
+        Returns
+        -------
+        mean : ndarray of shape (n_genes,)
+            Mean expression per gene.
+        var : ndarray of shape (n_genes,)
+            Variance per gene.
+        count : int
+            Number of cells used in the calculation.
+
+        Notes
+        -----
+        Variance is set to zero when only one cell is present.
+        """
         count = data.shape[1]
         sum_mat = data.sum(axis=1)
         square_sum_mat = data.power(2).sum(axis=1)
@@ -40,28 +87,45 @@ class specificity_score:
 
     @staticmethod
     def compute_score_for_metacell(args):
-        '''calculate spec score for every metacell'''
-        # Unpack task parameters
+        """
+        Worker function to compute specificity statistics for one metacell.
+
+        This function reconstructs the shared sparse matrix, extracts the
+        subset of cells belonging to a metacell, and computes:
+
+        - mean/variance within the metacell
+        - inferred mean/variance of remaining cells
+        - z-statistic comparing the two
+        - expression coverage within the metacell
+
+        Returns
+        -------
+        stat : ndarray
+            Z-statistic per gene.
+        rc : ndarray
+            Expression coverage ratio per gene.
+        """
+        # unpack task parameters
         (global_mean, global_var, global_count, global_mean_sq, idx_list,
          calculate_statistics, shm_data_name,
          shm_indices_name, shm_indptr_name, data_dtype, indices_dtype,
          indptr_dtype, data_shape, indices_shape, indptr_shape, csr_shape) = args
 
-        # Attach to shared memory
+        # attach to shared memory
         shm_data = SharedMemory(name=shm_data_name)
         shm_indices = SharedMemory(name=shm_indices_name)
         shm_indptr = SharedMemory(name=shm_indptr_name)
 
         try:
-            # Reconstruct arrays from shared memory
+            # reconstruct arrays from shared memory
             data = np.ndarray(data_shape, dtype=data_dtype, buffer=shm_data.buf)
             indices = np.ndarray(indices_shape, dtype=indices_dtype, buffer=shm_indices.buf)
             indptr = np.ndarray(indptr_shape, dtype=indptr_dtype, buffer=shm_indptr.buf)
 
-            # Reconstruct CSR matrix
+            # reconstruct CSR matrix
             data_mat = csr_matrix((data, indices, indptr), shape=csr_shape)
 
-            # Slice the matrix using idx_list (columns)
+            # slice the matrix using idx_list (columns)
             sub_data = data_mat[:, idx_list]
 
             # calculate stats for metacells
@@ -82,33 +146,45 @@ class specificity_score:
             return stat, rc
 
         finally:
-            # Close shared memory handles in worker
+            # close shared memory handles in worker
             shm_data.close()
             shm_indices.close()
             shm_indptr.close()
 
     def get_metacell_spec_score(self):
         """
-        For every gene in every metacells, calculate prob of this gene is higher than the rest of metacells
-        Use sparse matrix to calculate var and mean, make it faster
+        Compute specificity scores for all genes across metacells.
+
+        Results are stored in:
+
+        ``adata.uns["spec_score"]`` → DataFrame (metacells × genes)
+
+        Notes
+        -----
+        - Uses multiprocessing with shared memory.
+        - Scores are:
+
+          ``NormalCDF(z) × coverage``
+
+          followed by column-wise normalization.
         """
         logger.info('Calculate metacell specificity score')
 
         t0 = time()
         # transpose of input matrix and convert to sparse matrix
         data = self.adata.X.transpose().tocsr()
-        # Extract CSR components
+        # extract CSR components
         data_array = data.data
         indices_array = data.indices
         indptr_array = data.indptr
         csr_shape = data.shape
 
-        # Create shared memory blocks
+        # create shared memory blocks
         shm_data = SharedMemory(create=True, size=data_array.nbytes)
         shm_indices = SharedMemory(create=True, size=indices_array.nbytes)
         shm_indptr = SharedMemory(create=True, size=indptr_array.nbytes)
 
-        # Copy data to shared memory
+        # copy data to shared memory
         np_data_shm = np.ndarray(data_array.shape, dtype=data_array.dtype, buffer=shm_data.buf)
         np_data_shm[:] = data_array[:]
 
@@ -127,7 +203,7 @@ class specificity_score:
         for metacell, idx in zip(self.adata.obs["metacell"], np.arange(self.adata.shape[0])):
             metacell2idx[metacell].append(idx)
 
-        # Prepare task parameters
+        # prepare task parameters
         tasks = [
             (
                 global_mean, global_var, global_count, global_mean_sq,
@@ -153,7 +229,7 @@ class specificity_score:
             with Pool(self.n_jobs) as pool:
                 res = pool.map(self.compute_score_for_metacell, tasks)
         finally:
-            # Cleanup shared memory in main process
+            # clean up shared memory in main process
             shm_data.close()
             shm_data.unlink()
             shm_indices.close()
@@ -174,28 +250,33 @@ class specificity_score:
 
     @staticmethod
     def compute_score_for_celltype(args):
-        '''calculate spec score for every cell types'''
-        # Unpack task parameters
+        """
+        Worker function computing specificity statistics for one cell type.
+
+        Identical statistical formulation to metacell scoring, but applied
+        to groups defined by ``adata.obs['cell_type']``.
+        """
+        # unpack task parameters
         (global_mean, global_var, global_count, global_mean_sq, idx_list,
          calculate_statistics, shm_data_name,
          shm_indices_name, shm_indptr_name, data_dtype, indices_dtype,
          indptr_dtype, data_shape, indices_shape, indptr_shape, csr_shape) = args
 
-        # Attach to shared memory
+        # attach to shared memory
         shm_data = SharedMemory(name=shm_data_name)
         shm_indices = SharedMemory(name=shm_indices_name)
         shm_indptr = SharedMemory(name=shm_indptr_name)
 
         try:
-            # Reconstruct arrays from shared memory
+            # reconstruct arrays from shared memory
             data = np.ndarray(data_shape, dtype=data_dtype, buffer=shm_data.buf)
             indices = np.ndarray(indices_shape, dtype=indices_dtype, buffer=shm_indices.buf)
             indptr = np.ndarray(indptr_shape, dtype=indptr_dtype, buffer=shm_indptr.buf)
 
-            # Reconstruct CSR matrix
+            # reconstruct CSR matrix
             data_mat = csr_matrix((data, indices, indptr), shape=csr_shape)
 
-            # Slice the matrix using idx_list (columns)
+            # slice the matrix using idx_list (columns)
             sub_data = data_mat[:, idx_list]
 
             # calculate stats for cell types
@@ -216,33 +297,36 @@ class specificity_score:
             return stat, rc
 
         finally:
-            # Close shared memory handles in worker
+            # close shared memory handles in worker
             shm_data.close()
             shm_indices.close()
             shm_indptr.close()
 
     def get_celltype_spec_score(self):
         """
-        For every gene in every cell types, calculate prob of this gene is higher than the rest of cell types
-        Use sparse matrix to calculate var and mean, make it faster
+        Compute specificity scores for all genes across cell types.
+
+        Results are stored in:
+
+        ``adata.uns["cell_type_spec_score"]`` → DataFrame (cell types × genes)
         """
         logger.info('Calculate cell type specificity score')
 
         t0 = time()
         # transpose of input matrix and convert to sparse matrix
         data = self.adata.X.transpose().tocsr()
-        # Extract CSR components
+        # extract CSR components
         data_array = data.data
         indices_array = data.indices
         indptr_array = data.indptr
         csr_shape = data.shape
 
-        # Create shared memory blocks
+        # create shared memory blocks
         shm_data = SharedMemory(create=True, size=data_array.nbytes)
         shm_indices = SharedMemory(create=True, size=indices_array.nbytes)
         shm_indptr = SharedMemory(create=True, size=indptr_array.nbytes)
 
-        # Copy data to shared memory
+        # copy data to shared memory
         np_data_shm = np.ndarray(data_array.shape, dtype=data_array.dtype, buffer=shm_data.buf)
         np_data_shm[:] = data_array[:]
 
@@ -261,7 +345,7 @@ class specificity_score:
         for cell_type, idx in zip(self.adata.obs["cell_type"], np.arange(self.adata.shape[0])):
             celltype2idx[cell_type].append(idx)
 
-        # Prepare task parameters
+        # prepare task parameters
         tasks = [
             (
                 global_mean, global_var, global_count, global_mean_sq,
@@ -287,7 +371,7 @@ class specificity_score:
             with Pool(self.n_jobs) as pool:
                 res = pool.map(self.compute_score_for_celltype, tasks)
         finally:
-            # Cleanup shared memory in main process
+            # clean up shared memory in main process
             shm_data.close()
             shm_data.unlink()
             shm_indices.close()

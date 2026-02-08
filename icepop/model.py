@@ -12,9 +12,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# ============================================================
-# Core linear regression
-# ============================================================
 def _linear_reg(
     X: np.ndarray,
     y: np.ndarray,
@@ -22,27 +19,36 @@ def _linear_reg(
     dfb: bool = False
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray | None]:
     """
-    Perform OLS regression of y on each row of X (implicit intercept).
+    Perform row-wise ordinary least squares (OLS) regression of ``y`` on each
+    row of ``X`` using an implicit intercept (mean-centering).
+
+    Each row of ``X`` is treated as an independent predictor vector for the
+    same response vector ``y``. This is equivalent to fitting multiple simple
+    linear regressions:
+
+        y = beta_i * X_i + error
+
+    after subtracting row-wise means from ``X`` and the mean from ``y``.
 
     Parameters
     ----------
-    X : np.ndarray
-        Shape (n_metacell, n_gene)
-    y : np.ndarray
-        Shape (n_gene,)
-    eps : float
-        Numerical stability constant
-    dfb : bool
-        Whether to compute DFBETAS
+    X : np.ndarray of shape (n_metacell, n_gene)
+        Predictor matrix where each row represents a metacell profile across genes.
+    y : np.ndarray of shape (n_gene,)
+        Gene-level response vector.
+    eps : float, default=1e-12
+        Small numerical constant added to denominators for stability.
+    dfb : bool, default=False
+        Whether to compute DFBETAS influence statistics for each observation.
 
     Returns
     -------
-    beta : np.ndarray
-        Regression coefficients (n_metacell,)
-    se : np.ndarray
-        Standard errors (n_metacell,)
-    dfb_mat : np.ndarray or None
-        DFBETAS (n_metacell, n_gene) if dfb=True
+    beta : np.ndarray of shape (n_metacell,)
+        Estimated regression coefficient for each row of ``X``.
+    se : np.ndarray of shape (n_metacell,)
+        Standard error of each regression coefficient.
+    dfb_mat : np.ndarray of shape (n_metacell, n_gene) or None
+        DFBETAS influence values if ``dfb=True``; otherwise ``None``.
     """
     X = np.nan_to_num(X, nan=0.0)
     y = np.nan_to_num(y, nan=0.0)
@@ -69,10 +75,54 @@ def _linear_reg(
     return beta, se, dfb_mat
 
 
-# ============================================================
-# Multiprocessing worker (top-level required)
-# ============================================================
 def _lr_util(args):
+    """
+    Worker utility for permutation-based row-wise OLS regression using shared memory.
+
+    This function is designed to be executed inside a multiprocessing pool.
+    It reconstructs the predictor matrix ``X`` from a shared memory buffer,
+    performs mean-centered simple linear regression of a (possibly permuted)
+    response vector ``y`` on each row of ``X``, and returns regression
+    coefficients and standard errors.
+
+    The regression model for each row ``i`` is:
+
+        y = beta_i * X_i + error
+
+    after subtracting the mean from both ``y`` and each row of ``X``
+    (equivalent to fitting an intercept).
+
+    Parameters
+    ----------
+    args : tuple
+        Packed arguments required for multiprocessing execution:
+
+        - shm_data_name : str  
+          Name of the shared memory block containing ``X``.
+        - data_dtype : numpy.dtype  
+          Data type of the shared array.
+        - data_shape : tuple of int  
+          Shape of ``X`` as ``(n_metacell, n_gene)``.
+        - y : np.ndarray of shape (n_gene,)  
+          Response vector (typically a permutation of the original response).
+        - eps : float  
+          Small numerical stability constant added to denominators.
+
+    Returns
+    -------
+    beta : np.ndarray of shape (n_metacell,)
+        Estimated regression coefficient for each row of ``X``.
+    se : np.ndarray of shape (n_metacell,)
+        Standard error of each regression coefficient.
+
+    Notes
+    -----
+    - Uses shared memory to avoid duplicating large arrays across processes.
+    - Assumes rows of ``X`` are independent predictors evaluated against
+      the same response vector ``y``.
+    - Does **not** compute influence statistics (e.g., DFBETAS); see
+      :func:`_linear_reg` for the full regression implementation.
+    """
     shm_data_name, data_dtype, data_shape, y, eps = args
 
     shm_data = SharedMemory(name=shm_data_name)
@@ -101,9 +151,6 @@ def _lr_util(args):
     return beta, se
 
 
-# ============================================================
-# 2. Permutation-estimated covariance (core)
-# ============================================================
 def _run_parallel_lr(
     X, y,
     n_perm=1000,
@@ -112,22 +159,48 @@ def _run_parallel_lr(
     eps=1e-12
 ):
     """
-    run linear reg for permed y in parallel
+    Compute permutation-based linear regressions in parallel.
+
+    For each permutation of ``y``, performs row-wise OLS regression of the
+    permuted response on ``X``. Shared memory is used to avoid duplicating
+    large arrays across worker processes.
+
+    Parameters
+    ----------
+    X : np.ndarray of shape (n_metacell, n_gene)
+        Predictor matrix.
+    y : np.ndarray of shape (n_gene,)
+        Response vector to be permuted.
+    n_perm : int, default=1000
+        Number of random permutations of ``y``.
+    random_state : int, default=42
+        Seed for reproducible permutations.
+    n_jobs : int, default=20
+        Number of parallel worker processes. If ``1``, runs serially.
+    eps : float, default=1e-12
+        Numerical stability constant used in regression.
+
+    Returns
+    -------
+    beta_perm : np.ndarray of shape (n_perm, n_metacell)
+        Regression coefficients from each permutation.
+    se_perm : np.ndarray of shape (n_perm, n_metacell)
+        Standard errors from each permutation.
     """
     rng = np.random.default_rng(random_state)
 
     if n_jobs > 1:
-        # Create shared memory blocks
+        # create shared memory blocks
         shm_data = SharedMemory(create=True, size=X.nbytes)
 
-        # Copy data to shared memory
+        # copy data to shared memory
         np_data_shm = np.ndarray(X.shape, dtype=X.dtype, buffer=shm_data.buf)
         np_data_shm[:] = X[:]
 
         # prepare permutation bank
         y_perms = [rng.permutation(y) for _ in range(n_perm)]
 
-        # Prepare task parameters
+        # prepare task parameters
         tasks = [
             (
                 shm_data.name, X.dtype, X.shape,
@@ -143,7 +216,7 @@ def _run_parallel_lr(
             with Pool(n_jobs) as pool:
                 res = pool.map(_lr_util, tasks)
         finally:
-            # Cleanup shared memory in main process
+            # clean up shared memory in main process
             shm_data.close()
             shm_data.unlink()
         logger.info(f"[pool] finished in {(time() - t0) / 60:.2f} min")
@@ -163,21 +236,40 @@ def _run_parallel_lr(
         return beta_perm, se_perm
 
 
-# ============================================================
-# 4. Cell-type aggregation using covariance
-# ============================================================
-
 def _celltype_from_metacell(beta_hat, cov_beta, f, null):
     """
-    Aggregate metacell effects to cell-type level.
+    Aggregate metacell-level regression effects to a cell-type–level statistic.
+
+    The cell-type effect is computed as a weighted linear combination of
+    metacell coefficients:
+
+        beta_ct = f^T beta_hat
+        var_ct  = f^T cov_beta f
+
+    A z-score is derived and evaluated against an empirical null distribution
+    estimated from permutation statistics.
 
     Parameters
     ----------
-    f : (n_metacell,)  weights (e.g. metacell proportions)
+    beta_hat : np.ndarray of shape (n_metacell,)
+        Observed metacell regression coefficients.
+    cov_beta : np.ndarray of shape (n_metacell, n_metacell)
+        Covariance matrix of metacell coefficients estimated from permutations.
+    f : np.ndarray of shape (n_metacell,)
+        Normalized metacell weights for the given cell type.
+    null : np.ndarray of shape (n_perm,)
+        Permutation-derived null distribution of cell-type z-scores.
 
     Returns
     -------
-    beta_ct, se_ct, z_ct, p_ct
+    beta_ct : float
+        Aggregated cell-type regression coefficient.
+    se_ct : float
+        Standard error of the aggregated coefficient.
+    z_ct : float
+        Z-score of the cell-type association.
+    p_ct : float
+        One-sided p-value computed from the fitted normal null distribution.
     """
     beta_ct = f @ beta_hat
     var_ct = f @ cov_beta @ f
@@ -193,18 +285,38 @@ def _celltype_from_metacell(beta_hat, cov_beta, f, null):
     return beta_ct, se_ct, z_ct, p_ct
 
 
-# ============================================================
-# Main association model
-# ============================================================
-
 class MetacellAssoc:
     """
-    Metacell → cell-type association model using permutation GLS.
+    Permutation-based metacell → cell-type association model.
 
-    Notes
-    -----
-    - sep and comp must be precomputed
-    - DFBETAS are returned for post-hoc analysis
+    This class estimates gene-level associations at the metacell level using
+    row-wise OLS regression, derives covariance from permutation testing,
+    and aggregates effects to the cell-type level using generalized least
+    squares (GLS)-style weighting.
+
+    The workflow includes:
+
+    1. Metacell-level regression and standard errors
+    2. Permutation-derived covariance estimation
+    3. Cell-type aggregation with empirical null calibration
+    4. Multiple-testing correction across cell types
+    5. Within–cell-type metacell significance mixture estimation
+    6. Influence scoring via DFBETAS
+
+    Parameters
+    ----------
+    n_perm : int, default=1000
+        Number of permutations used to estimate null distributions.
+    n_jobs : int, default=20
+        Number of parallel worker processes.
+    eps : float, default=1e-12
+        Numerical stability constant.
+    random_state : int, default=42
+        Seed for permutation reproducibility.
+    q_thres : float, default=0.1
+        False discovery rate (FDR) threshold used for significance summaries.
+    ct_key : str, default="cell_type"
+        Column name used to label cell types in output tables.
     """
 
     def __init__(
@@ -231,34 +343,34 @@ class MetacellAssoc:
         c2mc2ct: pd.DataFrame,
     ) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
-        Run metacell → cell-type association.
+        Run the full metacell → cell-type association pipeline.
 
         Parameters
         ----------
-        X : np.ndarray
-            Metacell × gene matrix
-        y : np.ndarray
-            Gene-level score
-        freq_df : pd.DataFrame
-            Celltype × metacell weight matrix
-        comp : np.ndarray
-            Metacell compactness score
-        sep : np.ndarray
-            Metacell specificity score
+        X : np.ndarray of shape (n_metacell, n_gene)
+            Metacell-by-gene expression or feature matrix.
+        y : np.ndarray of shape (n_gene,)
+            Gene-level score or phenotype association vector.
+        freq_df : pd.DataFrame of shape (n_celltype, n_metacell)
+            Cell-type–specific metacell weights (e.g., proportions or purity).
+        c2mc2ct : pd.DataFrame
+            Mapping table linking cells, metacells, and cell types. Must contain
+            columns ``["metacell", ct_key]``.
 
         Returns
         -------
         ct_df : pd.DataFrame
-            Cell-type association results
+            Cell-type–level association statistics including beta, standard error,
+            z-score, p-value, FDR q-value, and significant metacell percentage.
         mc_df : pd.DataFrame
-            Metacell-level results
+            Metacell-level regression statistics.
+        ctdfbs : np.ndarray of shape (n_celltype, n_gene)
+            Cell-type–level influence scores derived from DFBETAS.
         """
         X = X.astype(np.float32)
         y = y.astype(np.float32)
 
-        # --------------------------------
-        # Metacell-level association
-        # --------------------------------
+        # metacell-level association
         # get mc beta and se
         beta_hat, se_hat, dfb = _linear_reg(X, y, eps=self.eps, dfb=True)
 
@@ -283,9 +395,7 @@ class MetacellAssoc:
             "p": p,
         })
 
-        # --------------------------------
-        # Build metacell weights per cell type
-        # --------------------------------
+        # build metacell weights per cell type
         sig_w = norm.cdf(z)
 
         metacell_weight = {}
@@ -294,9 +404,7 @@ class MetacellAssoc:
             tot = w.sum()
             metacell_weight[ct] = w / (tot if tot > 0 else 1e-12)
 
-        # --------------------------------
         # null t distribution for each cell type
-        # --------------------------------
         t0 = time()
         logger.info("[perm-null] start building null distributions of association")
         metacell_perm_t = {}
@@ -325,9 +433,7 @@ class MetacellAssoc:
             metacell_perm_t[celltype] = t_ct_perm
         logger.info(f"[perm-null] finished in {(time() - t0) / 60:.2f} min")
 
-        # --------------------------------
-        # Aggregate to cell-type level
-        # --------------------------------
+        # aggregate to cell-type level
         t0 = time()
         logger.info(f"[Aggregate] Aggregate metacell association to {self.ct_key} level")
         ct_res = []
@@ -345,9 +451,7 @@ class MetacellAssoc:
         ct_df['q'] = multipletests(ct_df['p'], method="fdr_bh")[1]
         logger.info(f"[mixture] finished in {(time() - t0) / 60:.2f} min")
 
-        # --------------------------------
-        # Estimate mixture of association
-        # --------------------------------
+        # estimate mixture of association
         t0 = time()
         logger.info(f"[mixture] Estimate significance of metacells within {self.ct_key}")
         mc_p = mc_df['p'].values
@@ -373,9 +477,7 @@ class MetacellAssoc:
         ct_df['sig_pct'] = sig_pct_list
         logger.info(f"[mixture] finished in {(time() - t0) / 60:.2f} min")
 
-        # --------------------------------
-        # Calculate influence per cell type
-        # --------------------------------
+        # calculate influence per cell type
         t0 = time()
         logger.info(f"[influence] Get influence score for given {self.ct_key}")
         ctdfbs = np.vstack([i for i in metacell_weight.values()]) @ dfb / ct_df['se'].values[:, None]
