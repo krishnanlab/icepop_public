@@ -98,7 +98,7 @@ def association(
 
     # check if metacell columns in adata
     # get spec score
-    if spec_score is not None:
+    if (spec_score is not None) and Path(spec_score).exists():
         logger.info("Loading precomputed metacell specificity scores")
         f = np.load(spec_score, allow_pickle=True)
         adata.uns['spec_score'] = pd.DataFrame(f['score'], index=f['mc'], columns=f['genes'])
@@ -108,7 +108,7 @@ def association(
         spec = specificity_score(adata, n_jobs=n_jobs)
         spec.get_metacell_spec_score()
         np.savez_compressed(
-            f'{outdir}/mc_spec_score.npz',
+            spec_score,
             score=np.asarray(adata.uns['spec_score'], np.float32),
             mc=adata.uns['spec_score'].index.values,
             genes=adata.uns['spec_score'].columns.values,
