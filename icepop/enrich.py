@@ -1,38 +1,28 @@
-import os
 import time
-import argparse
 import logging
+import fire
 from enrichment_analysis import EnrichmentPipeline
 
-def args_parser():
-    parser = argparse.ArgumentParser(
-        description="Run enrichment analysis using hypergeometric test.")
-    
-    parser.add_argument("--results_path",
-                        type=str,
-                        required=True,
-                        help="Path to results directory.",)
+logging.basicConfig(level=logging.INFO)
 
-    parser.add_argument("--geneset_collections",
-                        type=str,
-                        required=True,
-                        help="Geneset collections: All, KEGG, REACTOME, etc.",)
+def run_enrichment(results_path: str,
+                    geneset_collections: str,
+                    geneset_path: str | None = None,):
+    """
+    Run enrichment analysis using hypergeometric test.
 
-    parser.add_argument("--geneset_path",
-                        type=str,
-                        required=False,
-                        help="Path to custom geneset GMT file.",)
-    
-    return parser.parse_args()
-
-
-def main():
+    Args:
+        results_path: Path to results directory.
+        geneset_collections: Geneset collections: All, KEGG, REACTOME, etc.
+        geneset_path: Optional path to custom geneset GMT file.
+    """
     start = time.perf_counter()
-    args = args_parser()
 
-    pipeline = EnrichmentPipeline(results_path=args.results_path,
-                                geneset_collections=args.geneset_collections,
-                                geneset_path=args.geneset_path,)
+    pipeline = EnrichmentPipeline(
+        results_path=results_path,
+        geneset_collections=geneset_collections,
+        geneset_path=geneset_path,
+    )
 
     logging.info("Starting enrichment analysis")
     pipeline.run()
@@ -40,6 +30,10 @@ def main():
     elapsed = time.perf_counter() - start
     logging.info(f"Execution time: {elapsed:.2f} seconds")
 
+    return elapsed  
+
+def main():
+    fire.Fire(run_enrichment)
 
 if __name__ == "__main__":
     main()
