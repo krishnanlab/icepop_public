@@ -22,7 +22,8 @@ def association(
     ct_key: str = 'cell_type',
     trait_name: str = None,
     n_perm: int = 1000,
-    q_thres: float = 0.1
+    q_thres: float = 0.1,
+    output_dfbs: bool = True
 ):
     """
     Run metacell-based gene–trait association analysis.
@@ -56,6 +57,8 @@ def association(
         Number of permutations for null distribution estimation.
     q_thres : float, default=0.1
         FDR threshold for significance.
+    output_dfbs: bool: default=True
+        Whether output influence diagnostics
 
     Outputs
     -------
@@ -165,7 +168,8 @@ def association(
     # model fitting
     assoc = MetacellAssoc(
         n_perm=n_perm, n_jobs=n_jobs,
-        q_thres=q_thres, ct_key=ct_key
+        q_thres=q_thres, ct_key=ct_key,
+        output_dfbs=output_dfbs
     )
     ct_df, mc_df, ctdfbs = assoc.fit(
         X, y, freq_df,
@@ -178,11 +182,12 @@ def association(
     mc_df.to_csv(metacell_out, header=True, index=False)
     # cell-type-level association results
     ct_df.to_csv(celltype_out, header=True, index=False)
-    # influence diagnostics
-    np.savez_compressed(
-        dfbs_out,
-        dfbs=ctdfbs,
-        celltypes=freq_df.index.values,
-        genes=shared_genes
-    )
+    if output_dfbs:
+        # influence diagnostics
+        np.savez_compressed(
+            dfbs_out,
+            dfbs=ctdfbs,
+            celltypes=freq_df.index.values,
+            genes=shared_genes
+        )
     logger.info(f"Assoication analysis finished in {(time() - t0) / 60:.2f} min")

@@ -317,6 +317,8 @@ class MetacellAssoc:
         False discovery rate (FDR) threshold used for significance summaries.
     ct_key : str, default="cell_type"
         Column name used to label cell types in output tables.
+    output_dfbs: bool: default=True
+        Whether output dfbetas
     """
 
     def __init__(
@@ -326,7 +328,8 @@ class MetacellAssoc:
         eps: float = 1e-12,
         random_state: int = 42,
         q_thres: float = 0.1,
-        ct_key: str = 'cell_type'
+        ct_key: str = 'cell_type',
+        output_dfbs: bool = True
     ):
         self.n_perm = n_perm
         self.n_jobs = n_jobs
@@ -334,6 +337,7 @@ class MetacellAssoc:
         self.random_state = random_state
         self.q_thres = q_thres
         self.ct_key = ct_key
+        self.output_dfbs = output_dfbs
 
     def fit(
         self,
@@ -477,10 +481,12 @@ class MetacellAssoc:
         ct_df['sig_pct'] = sig_pct_list
         logger.info(f"[mixture] finished in {(time() - t0) / 60:.2f} min")
 
-        # calculate influence per cell type
-        t0 = time()
-        logger.info(f"[influence] Get influence score for given {self.ct_key}")
-        ctdfbs = np.vstack([i for i in metacell_weight.values()]) @ dfb / ct_df['se'].values[:, None]
-        logger.info(f"[influence] finished in {(time() - t0) / 60:.2f} min")
+        ctdfbs = None
+        if self.output_dfbs:
+            # calculate influence per cell type
+            t0 = time()
+            logger.info(f"[influence] Get influence score for given {self.ct_key}")
+            ctdfbs = np.vstack([i for i in metacell_weight.values()]) @ dfb / ct_df['se'].values[:, None]
+            logger.info(f"[influence] finished in {(time() - t0) / 60:.2f} min")
 
         return ct_df.sort_values("q", ignore_index=True), mc_df, ctdfbs
