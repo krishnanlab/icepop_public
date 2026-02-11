@@ -42,7 +42,7 @@ def association(
         MAGMA gene-level association file (*.genes.out).
     outdir : str
         Output directory for association results.
-    spec_score : str, optional
+    spec_score : str: Optional
         Precomputed metacell specificity score file (.npz).
         If not provided, specificity scores are computed.
     n_jobs : int, default=20
@@ -101,7 +101,9 @@ def association(
 
     # check if metacell columns in adata
     # get spec score
-    if (spec_score is not None) and Path(spec_score).exists():
+    if spec_score is None:
+        spec_score = f'{outdir}/mc_spec_score.npz'
+    if Path(spec_score).exists():
         logger.info("Loading precomputed metacell specificity scores")
         f = np.load(spec_score, allow_pickle=True)
         adata.uns['spec_score'] = pd.DataFrame(f['score'], index=f['mc'], columns=f['genes'])
