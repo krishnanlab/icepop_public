@@ -461,6 +461,11 @@ class MetacellAssoc:
         mc_p = mc_df['p'].values
         metacells = freq_df.columns.values
         sig_pct_list = []
+        mc_fdr_df = pd.DataFrame(
+            1.0,
+            index=freq_df.index,
+            columns=freq_df.columns
+        )
         for ct, q in zip(ct_df[self.ct_key], ct_df['q']):
             sig_pct = 0.0
             if q <= self.q_thres:
@@ -471,6 +476,7 @@ class MetacellAssoc:
                     w = purity[purity > 0]
                     w = w / w.sum() * w.size
                     q = multipletests(p / w, method='fdr_bh')[1]
+                    mc_fdr_df.loc[ct, pos_mcs] = q
                     mc2q = dict(zip(pos_mcs, q))
                     c_q = np.asarray([
                         mc2q[mc] if mc in mc2q else 1.0
@@ -489,4 +495,4 @@ class MetacellAssoc:
             ctdfbs = np.vstack([i for i in metacell_weight.values()]) @ dfb / ct_df['se'].values[:, None]
             logger.info(f"[influence] finished in {(time() - t0) / 60:.2f} min")
 
-        return ct_df.sort_values("q", ignore_index=True), mc_df, ctdfbs
+        return ct_df.sort_values("q", ignore_index=True), mc_df, mc_fdr_df, ctdfbs
