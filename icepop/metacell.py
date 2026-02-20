@@ -109,8 +109,14 @@ def metacell(
     freq_df = pd.crosstab(adata.obs[ct_key], adata.obs['metacell'])
     freq_df = freq_df.div(freq_df.sum(0))
 
+    # get metacell size and ct size
+    mc_cnt = adata.obs['metacell'].value_counts()
+    ct_cnt = adata.obs['cell_type'].value_counts()
+
     mc2ct_df = pd.DataFrame({
         "cell_type": freq_df.idxmax(axis=0),
         "purity": freq_df.max(axis=0),
     })
+    mc2ct_df['metacell_size'] = mc_cnt.loc[mc2ct_df.index].values
+    mc2ct_df['cell_type_size'] = ct_cnt.loc[mc2ct_df['cell_type']].values
     mc2ct_df.to_csv(f'{outdir}/mc_stats.csv', header=True, index=True)
