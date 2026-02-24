@@ -120,3 +120,6 @@ def metacell(
     mc2ct_df['metacell_size'] = mc_cnt.loc[mc2ct_df.index].values
     mc2ct_df['cell_type_size'] = ct_cnt.loc[mc2ct_df['cell_type']].values
     mc2ct_df.to_csv(f'{outdir}/mc_stats.csv', header=True, index=True)
+
+    # print stats
+    logger.info("Overall purity stats:\n%s", mc2ct_df["purity"].describe())
