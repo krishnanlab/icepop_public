@@ -11,10 +11,10 @@ from statsmodels.stats.multitest import multipletests
 
 class EnrichmentPipeline:
     def __init__(self, 
-                results_path: str,
+                outdir: str,
                 geneset_collections: str,
                 geneset_path: str=None):
-        self.results_path = results_path
+        self.outdir = outdir
         self.geneset_collections = geneset_collections
         self.geneset_path = geneset_path
 
@@ -45,7 +45,7 @@ class EnrichmentPipeline:
         collections_arg = self.geneset_collections
         
         if collections_arg.lower() == "none":
-            if not args['geneset_path']:
+            if not self.geneset_path:
                 raise ValueError(
                     "When --geneset_collections=None, you must provide --geneset_path."
                     )
@@ -116,23 +116,48 @@ class EnrichmentPipeline:
 
 
     @staticmethod
-    def find_gene_contribution_file(results_path: str):
-        return next(
-            (
-                os.path.join(results_path, f)
-                for f in os.listdir(results_path)
-                if f.startswith("dfbs") and f.endswith(".npz")
-            ),
-            None,
-        )
+    def find_gene_contribution_file(outdir: str):
+        return next((
+                os.path.join(outdir, f)
+                for f in os.listdir(outdir)
+                if f.startswith("dfbs") and f.endswith(".npz")),
+            None,)
     
+    @staticmethod
+    def significant_celltypes(outdir: str):
+        celltype_assoc_file = next((os.path.join(outdir, f)
+                        for f in os.listdir(outdir)
+                        if f.startswith("celltype__trait") and f.endswith(".csv")),None,)
+        if celltype_assoc_file is None:
+            raise FileNotFoundError("No celltype association file found.")
+        
+        celltype_assoc = pd.read_csv(celltype_assoc_file)
+        celltype_assoc_filtered = (celltype_assoc[
+                                    (celltype_assoc['q'] < 0.1) & (celltype_assoc['sig_pct'] > 0.2)]
+                                    .reset_index(drop=True))
+        return celltype_assoc_filtered['cell_type'].tolist()
+
+
+    @staticmethod
+    def load_gmt(gmt_path: str) -> dict:
+        """loading user provided gmt file"""
+        genesets={}
+        with open(gmt_path,"r") as f:
+            for line in f:
+                geneset_name = line.strip().split("\t")[0]
+                genes = line.strip().split("\t")[1:]
+                genesets[geneset_name] = genes
+        return genesets
+
 
     def write_enrichment(self,
                         trait: str,
+                        celltypes: list,
                         gene_contribution_table: pd.DataFrame,
                         gene_contribution_filtered: pd.DataFrame,
-                        geneset_diction_filtered: pd.DataFrame,
+                        geneset_diction_filtered: dict,
                         gc_threshold: float):
+        
         for prefix, genesets in geneset_diction_filtered.items():
             if not genesets:
                 continue
@@ -141,7 +166,6 @@ class EnrichmentPipeline:
                 gene_contribution_table, 
                 geneset_diction_filtered, 
                 prefix)
-            celltypes = gene_contribution_filtered.index.tolist()
             results_list = Parallel(n_jobs=-1, backend="loky")(
                 delayed(self.run_hypergeometric)(
                     cell_gene=gene_contribution_filtered,
@@ -155,39 +179,45 @@ class EnrichmentPipeline:
                 hypergeom_results["prefix"] = prefix
                 hypergeom_results["fdr"] = multipletests(hypergeom_results["pvalue"], method = "fdr_bh")[1]
 
-                genesets_all = (pd.concat(results_list, ignore_index=True)
-                        .sort_values("fdr", ascending=True)
-                        .reset_index(drop=True))
-                output_path = os.path.join(self.results_path, 
-                                    f"enrichment_anlaysis_{trait}_{prefix}.txt")
-                genesets_all.to_csv(output_path, sep="\t", index=False)
+            genesets_all = (pd.concat(results_list, ignore_index=True)
+                    .sort_values("fdr", ascending=True)
+                    .reset_index(drop=True))
+            enrich_outdir = os.path.join(self.outdir, "enrichment")
+            os.makedirs(enrich_outdir,exist_ok=True)
+            output_path = os.path.join(enrich_outdir,
+                                        f"enrichment_anlaysis_{trait}_{prefix}.txt")
+            genesets_all.to_csv(output_path, sep="\t", index=False)
 
 
     def run(self):
-        gene_file = self.find_gene_contribution_file(self.results_path)
+        gene_file = self.find_gene_contribution_file(self.outdir)
+        celltypes = self.significant_celltypes(self.outdir)
         if gene_file is None:
             raise FileNotFoundError("No gene contribution file found.")
-
         trait = self.extract_trait(gene_file)
-
         gene_df, gc_threshold, gene_df_filtered = self.gene_contribution(
             gene_file, factor=2)
-
-        geneset_pkl_path = "./data/msigdb_genesets.pkl"
-        msigdb = self.load_msigdb(geneset_pkl_path)
-
         collections = self.parse_geneset_args()
 
         if collections is None:
-            raise NotImplementedError("Custom geneset not implemented yet")
-
+            custom_genesets = self.load_gmt(self.geneset_path)
+            self.write_enrichment(trait,
+                                celltypes,
+                                gene_df, 
+                                gene_df_filtered,
+                                {"CUSTOM": custom_genesets},
+                                gc_threshold)
+            return
+        
+        geneset_pkl_path = "./data/msigdb_genesets.pkl"
+        msigdb = self.load_msigdb(geneset_pkl_path)
         if collections == ["All"]:
             collections = list(msigdb.keys())
-
         for gc in collections:
             self.write_enrichment(
                 trait,
+                celltypes,
                 gene_df,
                 gene_df_filtered,
                 {gc: msigdb[gc]},
-                gc_threshold,)                    
+                gc_threshold)                    
