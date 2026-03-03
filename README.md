@@ -29,7 +29,7 @@ poetry run icepop metacell \
     --save_name mouse_colon
 ```
 
-#### input options
+#### Input options
 
 1. `--h5ad` (str) Path to input AnnData (.h5ad) file containing single-cell expression data
 2. `--outdir` (str) Output directory where MetaQ results will be written
@@ -40,8 +40,9 @@ poetry run icepop metacell \
 
 this step need gpu for faster speed
 
-#### output
-metacell assignment
+#### Outputs
+1. metacell assignment: `outdir/mc_assign.csv`
+2. metacell statistics: `outdir/mc_stats.csv`
 
 ### Step 2: Get association, mixture and influence diagnoistics
 ```
@@ -49,16 +50,15 @@ poetry run icepop association \
     --h5ad ../data/TM_FACS/TM_FACS_cnt.h5ad \
     --mc_assign ../results/TM_FACS_mc/mc_assign.csv \
     --magmaz ../data/TM_FACS/magmaz/asd.genes.out \
-    --spec_score ../results/TM_FACS_mc/mc_spec_score.npz \
     --outdir ./test
 ```
 
-#### input options
+#### Input options
 
 1. `--h5ad` (str) Input AnnData file containing single-cell expression data
-2. `--mc_assign` (str) CSV file mapping cells to metacell assignments
-3. `--magmaz` (str) [magmaz](https://doi.org/10.1371/journal.pcbi.1004219) MAGMA gene-level association file (*.genes.out)
-4. `--spec_score` (str) Precomputed specificity scores (if applicable)
+2. `--mc_assign` (str) CSV file mapping cells to metacell assignments (output from staep 1: `outdir/mc_assign.csv`)
+3. `--magmaz` (str) [magmaz](https://doi.org/10.1371/journal.pcbi.1004219) MAGMA gene-level association file (*.genes.out) of a trait of interest
+4. `--spec_score` (str; default=None) Precomputed specificity scores; will be calculated if not provided
 5. `--outdir` (str) Output directory for association results
 6. `--n_jobs` (int; default=20) Number of parallel workers
 7. `--sp` (str; default='mmusculus') Species identifier for gene ID conversion
@@ -67,10 +67,11 @@ poetry run icepop association \
 10. `--n_perm` (int; default=1000) Number of permutations for null distribution estimation
 11. `--q_thres` (float; default=0.1) FDR threshold for significance
 
-#### output
+#### Outputs
 
 1. `outdir/celltype__trait-*.csv`
 2. `outdir/dfbs__trait-*.npz`
 3. `outdir/metacell__trait-*.csv`
+4. `outdir/mc_spec_score.npz` (if not provided as part of run arguments)
 
 where `*` is trait name we assume magmaz file name is `*.genes.out`
