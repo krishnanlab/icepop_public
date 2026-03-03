@@ -57,8 +57,8 @@ poetry run icepop association \
 
 1. `--h5ad` (str) Input AnnData file containing single-cell expression data
 2. `--mc_assign` (str) CSV file mapping cells to metacell assignments
-3. `--magmaz` (str) [magmaz](https://doi.org/10.1371/journal.pcbi.1004219) summary statistics
-4. `--spec_score` (str) MAGMA gene-level association file (*.genes.out)
+3. `--magmaz` (str) [magmaz](https://doi.org/10.1371/journal.pcbi.1004219) MAGMA gene-level association file (*.genes.out)
+4. `--spec_score` (str) Precomputed specificity scores (if applicable)
 5. `--outdir` (str) Output directory for association results
 6. `--n_jobs` (int; default=20) Number of parallel workers
 7. `--sp` (str; default='mmusculus') Species identifier for gene ID conversion
