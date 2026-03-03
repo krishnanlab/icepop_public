@@ -42,7 +42,7 @@ def association(
         MAGMA gene-level association file (*.genes.out).
     outdir : str
         Output directory for association results.
-    spec_score : str, optional
+    spec_score : str: Optional
         Precomputed metacell specificity score file (.npz).
         If not provided, specificity scores are computed.
     n_jobs : int, default=20
@@ -101,7 +101,9 @@ def association(
 
     # check if metacell columns in adata
     # get spec score
-    if (spec_score is not None) and Path(spec_score).exists():
+    if spec_score is None:
+        spec_score = f'{outdir}/mc_spec_score.npz'
+    if Path(spec_score).exists():
         logger.info("Loading precomputed metacell specificity scores")
         f = np.load(spec_score, allow_pickle=True)
         adata.uns['spec_score'] = pd.DataFrame(f['score'], index=f['mc'], columns=f['genes'])
@@ -150,6 +152,7 @@ def association(
         trait_name = Path(magmaz).name.replace('.genes.out', '')
     metacell_out = f'{outdir}/metacell__trait-{trait_name}.csv'
     celltype_out = f'{outdir}/celltype__trait-{trait_name}.csv'
+    mcfdr_out = f'{outdir}/mcfdr__trait-{trait_name}.csv'
     dfbs_out = f'{outdir}/dfbs__trait-{trait_name}.npz'
 
     # align gene set between magma z and sc data
@@ -171,7 +174,7 @@ def association(
         q_thres=q_thres, ct_key=ct_key,
         output_dfbs=output_dfbs
     )
-    ct_df, mc_df, ctdfbs = assoc.fit(
+    ct_df, mc_df, mc_fdr_df, ctdfbs = assoc.fit(
         X, y, freq_df,
         adata.obs.loc[:, ['metacell', ct_key]].copy()
     )
@@ -182,6 +185,7 @@ def association(
     mc_df.to_csv(metacell_out, header=True, index=False)
     # cell-type-level association results
     ct_df.to_csv(celltype_out, header=True, index=False)
+    mc_fdr_df.to_csv(mcfdr_out, header=True, index=True)
     if output_dfbs:
         # influence diagnostics
         np.savez_compressed(
