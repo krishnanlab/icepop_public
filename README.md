@@ -1,29 +1,17 @@
 # ICePop: Informative Cell Population
 This repository contains source code for ICePop ([DOI](TBD))
 
-## Installation
-### Dependencies
-ICePop dependencies are handled by [poetry](https://python-poetry.org/) with `python>=3.11,<3.12`
-To install poetry, please follow the [instructions on poetry's home page](https://python-poetry.org/docs/#installation).
-Then run the following command to 
-- create a virtual environment
-- install all dependencies from `poetry.lock`
-- install icepop in editable mode:
-```
-poetry install
-```
+## Dependencies
+`python>=3.11,<3.12`
+outdir/mc_spec_score.npz (if not provided as part of run arguments)
 
-### [Optional] Using icepop in another local project 
-If you want to use this repository as a local editable dependency in a different Poetry project:
-```
-poetry add --editable /path/to/icepop
-```
-where the path must point to the folder containing `pyproject.toml`
+## Installation
+ICePop can be installed easily via pip from PyPI:`pip install icepop`
 
 ## Run ICePop
 ### Step 1: Extract metacells
 ```
-poetry run icepop metacell \
+icepop metacell \
     --h5ad ../data/mouse_colon/mouse_colon_cnt.h5ad \
     --outdir ../results/mouse_colon_mc \
     --save_name mouse_colon
@@ -46,10 +34,12 @@ this step need gpu for faster speed
 
 ### Step 2: Get association, mixture and influence diagnoistics
 ```
-poetry run icepop association \
+icepop association \
     --h5ad ../data/TM_FACS/TM_FACS_cnt.h5ad \
     --mc_assign ../results/TM_FACS_mc/mc_assign.csv \
     --magmaz ../data/TM_FACS/magmaz/asd.genes.out \
+    --spec_score ../results/TM_FACS_mc/mc_spec_score.npz \
+    --sp mmusculus \
     --outdir ./test
 ```
 
@@ -66,12 +56,14 @@ poetry run icepop association \
 9. `--trait_name` (str; optional) Trait name used for output file naming
 10. `--n_perm` (int; default=1000) Number of permutations for null distribution estimation
 11. `--q_thres` (float; default=0.1) FDR threshold for significance
+12. `--output_dfbs` (boolean; default=True) If output influential testing results
 
 #### Outputs
 
-1. `outdir/celltype__trait-*.csv`
-2. `outdir/dfbs__trait-*.npz`
-3. `outdir/metacell__trait-*.csv`
-4. `outdir/mc_spec_score.npz` (if not provided as part of run arguments)
+1. `outdir/celltype__trait-*.csv`: Disease-cell type association table
+2. `outdir/dfbs__trait-*.npz`: Gene-level influence scores (DFBETAS) for each disease–cell type association
+3. `outdir/metacell__trait-*.csv`: Disease-metacell type association table
+4. `outdir/mc_spec_score.npz`: (if not provided as part of run arguments)
+5. `outdir/mcfdr__trait-*.csv`: Cell type × metacell matrix indicating significant disease-associated metacells within each cell type
 
 where `*` is trait name we assume magmaz file name is `*.genes.out`
