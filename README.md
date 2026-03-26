@@ -1,20 +1,29 @@
-# ICePop: Informative Cell Population
-This repository contains source code for ICePop ([DOI](TBD))
+# ICePop: Metacell-informative Cell Population
+This repository contains source code for ICePop ([DOI](TBD)). 
+
+The data used in this study are available on Zenodo: https://doi.org/10.5281/zenodo.19238928
+
+The code used to reproduce the analyses in the paper is available at: https://github.com/krishnanlab/icepop_analysis
 
 ## Dependencies
 `python>=3.11,<3.12`
-outdir/mc_spec_score.npz (if not provided as part of run arguments)
 
 ## Installation
-ICePop can be installed easily via pip from PyPI:`pip install icepop`
+ICePop can be installed easily via pip from PyPI: `pip install icepop`
 
 ## Run ICePop
+Before running the analysis, we recommend downloading the processed data from [Zenodo](https://github.com/krishnanlab/icepop_analysis).
+
+Expand and place the downloaded files under `../data`, then run the following commands.
+
+A more detailed tutorial is available at XXX.
+
 ### Step 1: Extract metacells
 ```
 icepop metacell \
-    --h5ad ../data/mouse_colon/mouse_colon_cnt.h5ad \
-    --outdir ../results/mouse_colon_mc \
-    --save_name mouse_colon
+    --h5ad ../data/TM_FACS/TM_FACS_cnt.h5ad \
+    --outdir ../results/TM_FACS_mc \
+    --save_name TM_FACS
 ```
 
 #### Input options
@@ -37,10 +46,9 @@ this step need gpu for faster speed
 icepop association \
     --h5ad ../data/TM_FACS/TM_FACS_cnt.h5ad \
     --mc_assign ../results/TM_FACS_mc/mc_assign.csv \
-    --magmaz ../data/TM_FACS/magmaz/asd.genes.out \
-    --spec_score ../results/TM_FACS_mc/mc_spec_score.npz \
+    --magmaz ../data/magmaz/asd.genes.out \
     --sp mmusculus \
-    --outdir ./test
+    --outdir ../results/TM_FACS_asso
 ```
 
 #### Input options
