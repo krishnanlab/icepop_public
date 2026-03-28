@@ -16,7 +16,7 @@ import fire
 import logging
 from icepop.metacell import metacell
 from icepop.association import association
-# from icepop.interactive import interactive
+from icepop.interactive import interactive
 
 
 def setup_logging(verbose=False):
@@ -65,7 +65,7 @@ def main(verbose: bool = False):
     fire.Fire({
         "metacell": metacell,
         "association": association,
-        # "interactive": interactive,
+        "interactive": interactive,
     })
 
 

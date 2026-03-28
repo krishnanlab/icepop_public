@@ -47,8 +47,7 @@ class EnrichmentPipeline:
         if collections_arg.lower() == "none":
             if not self.geneset_path:
                 raise ValueError(
-                    "When --geneset_collections=None, you must provide --geneset_path."
-                    )
+                    "When --geneset_collections=None, you must provide --geneset_path.")
             return None
         if collections_arg.lower() == "all":
             return ["All"]    
@@ -88,6 +87,10 @@ class EnrichmentPipeline:
             geneset_len = len(gene_set)
             overlap_genes = cell_genelist.intersection(gene_set)
             overlap_len = len(overlap_genes)
+
+            union_len = len(cell_genelist.union(gene_set))
+            normalized_overlap = overlap_len/universe_len
+
             hypergeom_test = hypergeom(universe_len, 
                                         geneset_len, cell_genelist_len)
             pval = hypergeom_test.sf(overlap_len-1)
@@ -98,8 +101,8 @@ class EnrichmentPipeline:
                     "celltype_genelist_size": cell_genelist_len,
                     "overlap": overlap_len,
                     "universe": universe_len,
-                    "pvalue": pval,
-                })
+                    "normalized_overlap": normalized_overlap,
+                    "pvalue": pval,})
         return pd.DataFrame(geneset_results)
 
 
