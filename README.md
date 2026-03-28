@@ -81,7 +81,7 @@ where `*` is trait name we assume magmaz file name is `*.genes.out`
 icepop interactive \
   --outdir results/ \
   --geneset_collections KEGG \
-  --notebook icepop-report.ipynb \
+  --notebook ICEPOP-SUMMARY.ipynb \
   --adata_path data.h5ad
 
 or 
@@ -90,7 +90,7 @@ icepop interactive \
   --outdir results/ \
   --geneset_collections none \
   --geneset_path custom.gmt \
-  --notebook report.ipynb \
+  --notebook ICEPOP-SUMMARY.ipynb \
   --adata_path data.h5ad
 ```
 
@@ -98,4 +98,4 @@ icepop interactive \
 1. `--outdir` (str) Output directory for association results
 2. `--geneset_collections` (str) All, 'BIOCARTA', 'KEGG', 'REACTOME', 'WIKIPATHWAYS', 'MIR', 'TF', 'GOBP', 'GOCC', 'GOMF', 'HP'
 3. `--geneset_path` (str) path to custom gmt file
-4. `--notebook` 
+4. `--notebook` (str) ICEPOP-SUMMARY.ipynb

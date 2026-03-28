@@ -53,7 +53,7 @@ def interactive(outdir, geneset_collections, notebook, geneset_path=None, adata_
     logger.info(f"Enrichment completed in {elapsed:.2f} seconds")
     logger.info("Generating summary report...")
     try:
-        executed_nb = os.path.join(outdir, "ICEPOP-SUMMARY.ipynb")
+        executed_nb = os.path.join(outdir, "icepop-report.ipynb")
         subprocess.run([
             "papermill",
             notebook,
