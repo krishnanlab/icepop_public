@@ -64,7 +64,7 @@ def interactive(outdir, geneset_collections, notebook, geneset_path=None, adata_
             "jupyter", "nbconvert",
             "--to", "html",
             executed_nb,
-            "--output-dir", outdir].check=True)
+            "--output-dir", outdir], check=True)
     except subprocess.CalledProcessError as e:
         logger.error(f"Error running notebook: {e}")
         raise
