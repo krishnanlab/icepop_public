@@ -75,3 +75,27 @@ icepop association \
 5. `outdir/mcfdr__trait-*.csv`: Cell type × metacell matrix indicating significant disease-associated metacells within each cell type
 
 where `*` is trait name we assume magmaz file name is `*.genes.out`
+
+### Step3: Enrichment Analysis and Interactive output
+```
+icepop interactive \
+  --outdir results/ \
+  --geneset_collections KEGG \
+  --notebook ICEPOP-SUMMARY.ipynb \
+  --adata_path data.h5ad
+
+or 
+
+icepop interactive \
+  --outdir results/ \
+  --geneset_collections none \
+  --geneset_path custom.gmt \
+  --notebook ICEPOP-SUMMARY.ipynb \
+  --adata_path data.h5ad
+```
+
+#### Input options
+1. `--outdir` (str) Output directory for association results
+2. `--geneset_collections` (str) All, 'BIOCARTA', 'KEGG', 'REACTOME', 'WIKIPATHWAYS', 'MIR', 'TF', 'GOBP', 'GOCC', 'GOMF', 'HP'
+3. `--geneset_path` (str) path to custom gmt file
+4. `--notebook` (str) ICEPOP-SUMMARY.ipynb
