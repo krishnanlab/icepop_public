@@ -5,7 +5,7 @@ import time
 import logging
 import subprocess
 import papermill
-from enrichment_analysis import EnrichmentPipeline
+from icepop.enrichment_analysis import EnrichmentPipeline
 
 logger = logging.getLogger("icepop.interactive")
 
