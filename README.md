@@ -16,7 +16,7 @@ Before running the analysis, we recommend downloading the processed data from [Z
 
 Expand and place the downloaded files under `../data`, then run the following commands.
 
-A more detailed tutorial is available at XXX.
+A more detailed tutorial is available at [`notebook/ICePop_tutorial.ipynb`](https://github.com/krishnanlab/icepop_public/blob/main/notebook/ICePop_tutorial.ipynb)
 
 ### Step 1: Extract metacells
 ```
