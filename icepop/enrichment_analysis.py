@@ -212,7 +212,7 @@ class EnrichmentPipeline:
                                 gc_threshold)
             return
         
-        geneset_pkl_path = "./data/msigdb_genesets.pkl"
+        geneset_pkl_path = "./genesets/msigdb_genesets.pkl"
         msigdb = self.load_msigdb(geneset_pkl_path)
         if collections == ["All"]:
             collections = list(msigdb.keys())
