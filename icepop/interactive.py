@@ -90,10 +90,11 @@ def interactive(
             "-p", "outdir", outdir,
             "-p", "adata_path", adata_path], check=True)
         subprocess.run([
-            "jupyter", "nbconvert",
+            "python", "-m", "nbconvert",
             "--to", "html",
             executed_nb,
-            "--output-dir", outdir], check=True)
+            "--output-dir", outdir
+        ], check=True)
     except subprocess.CalledProcessError as e:
         logger.error(f"Error running notebook: {e}")
         raise
