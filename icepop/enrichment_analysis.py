@@ -2,6 +2,7 @@ import os
 import pickle
 import logging
 import pandas as pd
+from importlib.resources import files
 import numpy as np
 from math import sqrt
 from scipy.stats import hypergeom
@@ -228,7 +229,7 @@ class EnrichmentPipeline:
             )
             return
 
-        geneset_pkl_path = "/mnt/research/FishEvoDevoGeno/Hao/icepop_public/genesets/msigdb_genesets.pkl"
+        geneset_pkl_path = files("icepop").joinpath("data/msigdb_genesets.pkl")
         msigdb = self.load_msigdb(geneset_pkl_path)
         if collections == ["All"]:
             collections = list(msigdb.keys())

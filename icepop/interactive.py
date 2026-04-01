@@ -4,6 +4,7 @@ import logging
 import subprocess
 import papermill
 from icepop.enrichment_analysis import EnrichmentPipeline
+from importlib.resources import files
 
 logger = logging.getLogger("icepop.interactive")
 
@@ -11,7 +12,6 @@ logger = logging.getLogger("icepop.interactive")
 def interactive(
     outdir: str,
     geneset_collections: str,
-    notebook: str,
     geneset_path: str = None,
     adata_path: str = None
 ):
@@ -31,8 +31,6 @@ def interactive(
         Name of predefined gene set collections to use. Use "none" if
         providing a custom gene set file via ``geneset_path``.
 
-    notebook : str
-        Path to the Jupyter notebook template used for report generation.
 
     geneset_path : str, optional
         Path to a custom gene set file. Required if
@@ -47,9 +45,6 @@ def interactive(
     ValueError
         If required arguments are missing or inconsistent.
 
-    FileNotFoundError
-        If the notebook or gene set file cannot be found.
-
     RuntimeError
         If enrichment analysis or notebook execution fails.
 
@@ -59,15 +54,8 @@ def interactive(
     and converting it to HTML via ``jupyter nbconvert``.
     """
 
-
     if not outdir:
         raise ValueError("outdir is required")
-
-    if not notebook:
-        raise ValueError("notebook path is required")
-
-    if not os.path.exists(notebook):
-        raise FileNotFoundError(f"Notebook not found: {notebook}")
 
     if geneset_collections.lower() == "none" and not geneset_path:
         raise ValueError("--geneset_path required when geneset_collections=None")
@@ -90,6 +78,7 @@ def interactive(
         raise
 
     elapsed = time.perf_counter() - start
+    notebook = files("icepop").joinpath("templates/ICEPOP-SUMMARY.ipynb")
     logger.info(f"Enrichment completed in {elapsed:.2f} seconds")
     logger.info("Generating summary report...")
     try:

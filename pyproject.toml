@@ -6,6 +6,13 @@ authors = ["yhadevol <yh_adevol@hotmail.com>"]
 license = "BSD 2-Clause License"
 readme = "README.md"
 
+packages = [{ include = "icepop" }]
+
+include = [
+    "icepop/data/**/*",
+    "icepop/templates/*.ipynb"
+]
+
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
 ipython = "^8.31.0"
