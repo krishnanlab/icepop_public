@@ -84,7 +84,7 @@ def interactive(
     try:
         executed_nb = os.path.join(outdir, "icepop-report.ipynb")
         subprocess.run([
-            "/mnt/ufs18/rs/FishEvoDevoGeno/Hao/icepop_analysis/.venv/bin/papermill",
+            "papermill",
             notebook,
             executed_nb,
             "-p", "outdir", outdir,
