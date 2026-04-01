@@ -1,7 +1,7 @@
 # ICePop: Metacell-informative Cell Population
 This repository contains source code for ICePop ([DOI](TBD)). 
 
-The data used in this study are available on Zenodo: https://doi.org/10.5281/zenodo.19238928
+The data used in this study are available on [Zenodo](https://zenodo.org/records/19238928)
 
 The code used to reproduce the analyses in the paper is available at: https://github.com/krishnanlab/icepop_analysis
 
@@ -14,7 +14,7 @@ ICePop requires `torch==2.1.1`. To enable GPU acceleration, which substantially 
 After installing torch, then install ICePop via pip: `pip install https://github.com/krishnanlab/icepop_public`
 
 ## Run ICePop
-Before running the analysis, we recommend downloading the processed data from [Zenodo](TBD).
+Before running the analysis, we recommend downloading the processed data from [Zenodo](https://zenodo.org/records/19238928).
 
 Expand and place the downloaded files under `../data`, then run the following commands.
 
