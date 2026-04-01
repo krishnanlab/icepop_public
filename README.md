@@ -22,13 +22,13 @@ A more detailed tutorial is available at [`notebook/ICePop_tutorial.ipynb`](http
 ```
 icepop metacell \
     --h5ad ../data/TM_FACS/TM_FACS_cnt.h5ad \
-    --outdir ../results/TM_FACS_mc \
+    --outdir ../results/TM_FACS \
     --save_name TM_FACS
 ```
 
 #### Input options
 
-1. `--h5ad` (str) Path to input AnnData (.h5ad) file containing single-cell expression data
+1. `--h5ad` (str) Path to input AnnData (.h5ad) file containing single-cell expression ***count*** data
 2. `--outdir` (str) Output directory where MetaQ results will be written
 3. `--save_name` (str; default='metaq_res') prefix of metaq output under `./save/*`, do not write a path
 4. `--ncell_per_mc` (int; default=75) Target number of cells per metacell. The total number of metacells is \n determined as approximately `n_cells / ncell_per_mc`
@@ -48,12 +48,12 @@ icepop association \
     --mc_assign ../results/TM_FACS_mc/mc_assign.csv \
     --magmaz ../data/magmaz/asd.genes.out \
     --sp mmusculus \
-    --outdir ../results/TM_FACS_asso
+    --outdir ../results/TM_FACS
 ```
 
 #### Input options
 
-1. `--h5ad` (str) Input AnnData file containing single-cell expression data
+1. `--h5ad` (str) Input AnnData file containing single-cell expression ***count*** data
 2. `--mc_assign` (str) CSV file mapping cells to metacell assignments (output from step 1: `outdir/mc_assign.csv`)
 3. `--magmaz` (str) [magmaz](https://doi.org/10.1371/journal.pcbi.1004219) MAGMA gene-level association file (*.genes.out) of a trait of interest
 4. `--spec_score` (str; default=None) Precomputed specificity scores; will be calculated if not provided
@@ -79,23 +79,28 @@ where `*` is trait name we assume magmaz file name is `*.genes.out`
 ### Step3: Enrichment Analysis and Interactive output
 ```
 icepop interactive \
-  --outdir results/ \
+  --outdir ../results/TM_FACS \
   --geneset_collections KEGG \
-  --notebook ICEPOP-SUMMARY.ipynb \
-  --adata_path data.h5ad
+  --adata_path ../data/TM_FACS/TM_FACS_cnt.h5ad
 
 or 
 
 icepop interactive \
-  --outdir results/ \
+  --outdir ../results/TM_FACS \
   --geneset_collections none \
   --geneset_path custom.gmt \
-  --notebook ICEPOP-SUMMARY.ipynb \
-  --adata_path data.h5ad
+  --adata_path ../data/TM_FACS/TM_FACS_cnt.h5ad
 ```
 
 #### Input options
-1. `--outdir` (str) Output directory for association results
+1. `--outdir` (str) Output directory for association results and metacell results
 2. `--geneset_collections` (str) All, 'BIOCARTA', 'KEGG', 'REACTOME', 'WIKIPATHWAYS', 'MIR', 'TF', 'GOBP', 'GOCC', 'GOMF', 'HP'
 3. `--geneset_path` (str) path to custom gmt file
-4. `--notebook` (str) ICEPOP-SUMMARY.ipynb
+4. `--adata_path` (str) path to AnnData file containing single-cell expression ***count*** data
+
+#### Outputs
+1. `outdir/icepop-report.ipynb`: Interactive Jupyter notebook containing all results
+2. `outdir/icepop-report.html`: Rendered HTML version of the notebook for easy viewing
+3. `outdir/enrichment`: Directory containing gene set enrichment analysis results
+
+> **Note:** We recommend using the same `--outdir` for Step 1 and Step 2, as the interactive step expects results from both steps to be located in the same output directory.
