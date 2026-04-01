@@ -26,11 +26,14 @@ def interactive(
     ----------
     outdir : str
         Output directory where enrichment results and reports will be saved.
+        This directory should also contain outputs from metacell assignment and
+        disease-cell type association.
 
     geneset_collections : str
-        Name of predefined gene set collections to use. Use "none" if
-        providing a custom gene set file via ``geneset_path``.
-
+        Name of predefined gene set collections to use. Available options include
+        'BIOCARTA', 'KEGG', 'REACTOME', 'WIKIPATHWAYS', 'MIR', 'TF', 'GOBP', 'GOCC',
+        'GOMF', and 'HP'. Use "All" to include all available collections.
+        Use "none" if providing a custom gene set file via ``geneset_path``.
 
     geneset_path : str, optional
         Path to a custom gene set file. Required if
