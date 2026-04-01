@@ -60,6 +60,8 @@ def main(verbose: bool = False):
         Construct metacells from single-cell expression data.
     association
         Perform gene-level and cell-type–level association testing.
+    interactive
+        Generate interactive output to explore affected cells and influential genes
     """
     setup_logging(verbose)
     fire.Fire({
