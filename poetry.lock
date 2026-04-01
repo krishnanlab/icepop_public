@@ -240,6 +240,26 @@ html5lib = ["html5lib"]
 lxml = ["lxml"]
 
 [[package]]
+name = "biothings-client"
+version = "0.5.0"
+description = "Python Client for BioThings API services."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "biothings_client-0.5.0-py3-none-any.whl", hash = "sha256:733488a5133bb6833a43cc895ad122654d8c72446926301d8607df0a9888c004"},
+    {file = "biothings_client-0.5.0.tar.gz", hash = "sha256:f9fddc7436d59bcde4f9a2501431fc744d142062ac4796585470adca29c59ed4"},
+]
+
+[package.dependencies]
+httpx = {version = ">=0.25.0", markers = "python_version >= \"3.8\""}
+
+[package.extras]
+caching = ["anysqlite", "hishel[httpx] (==1.1.8)", "hishel[httpx] (>=1.1.9)"]
+dataframe = ["pandas (>=1.2.0)"]
+jsonld = ["PyLD (>=0.7.2)"]
+tests = ["pytest (>=7.4.4)", "pytest (>=8.3.3)", "pytest-asyncio (>=0.21.2)", "pytest-asyncio (>=0.23.8)"]
+
+[[package]]
 name = "bleach"
 version = "6.3.0"
 description = "An easy safelist-based HTML-sanitizing tool."
@@ -1231,6 +1251,40 @@ files = [
 arrow = ">=0.15.0"
 
 [[package]]
+name = "itables"
+version = "2.7.3"
+description = "Python DataFrames as interactive DataTables"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "itables-2.7.3-py3-none-any.whl", hash = "sha256:b24ebd6a4ab3edab200f41c56e20a12b12b95ec15d3697aeb9bee71d92c008a9"},
+    {file = "itables-2.7.3.tar.gz", hash = "sha256:7a9680da20aa6495868265d397f1a8cc03d8fdbc592760d3ddb10b4d6081ff73"},
+]
+
+[package.extras]
+all = ["anywidget", "dash", "ipython", "marimo", "matplotlib", "modin[dask]", "narwhals", "pandas", "platformdirs", "polars", "pyarrow", "pytz", "shiny", "shinywidgets", "streamlit", "tomli", "traitlets", "typeguard (>=4.4.1)", "typing-extensions", "typing-extensions", "world-bank-data"]
+check-type = ["typeguard (>=4.4.1)"]
+config = ["platformdirs", "tomli"]
+dash = ["dash", "typing-extensions"]
+dev = ["anywidget", "dash", "ipykernel", "ipython", "jupyterlab", "jupytext", "marimo", "matplotlib", "modin[dask]", "narwhals", "nbconvert", "pandas", "pandas-stubs", "platformdirs", "polars", "pyarrow", "pyright", "pytest", "pytest-cov", "pytest-xdist", "pytz", "requests", "shiny", "shinywidgets", "streamlit", "tomli", "traitlets", "typeguard (>=4.4.1)", "typing-extensions", "typing-extensions", "watchfiles", "world-bank-data"]
+marimo = ["marimo"]
+narwhals = ["narwhals"]
+notebook = ["ipython"]
+other-dataframes = ["modin[dask]", "narwhals", "pyarrow"]
+pandas = ["pandas"]
+polars = ["polars"]
+samples = ["pytz", "world-bank-data"]
+shiny = ["shiny", "shinywidgets"]
+streamlit = ["streamlit"]
+style = ["matplotlib", "pandas"]
+test-all = ["anywidget", "dash", "ipykernel", "ipython", "jupytext", "marimo", "matplotlib", "modin[dask]", "narwhals", "nbconvert", "pandas", "platformdirs", "polars", "pyarrow", "pytest", "pytest-cov", "pytest-xdist", "pytz", "requests", "shiny", "shinywidgets", "streamlit", "tomli", "traitlets", "typeguard (>=4.4.1)", "typing-extensions", "typing-extensions", "world-bank-data"]
+test-base = ["pytest", "pytest-cov", "pytest-xdist"]
+test-dash = ["dash", "pytest", "pytest-cov", "pytest-xdist", "typing-extensions"]
+test-notebook = ["anywidget", "ipykernel", "ipython", "jupytext", "nbconvert", "pytest", "pytest-cov", "pytest-xdist", "requests", "traitlets"]
+typing = ["typing-extensions"]
+widget = ["anywidget", "traitlets"]
+
+[[package]]
 name = "jedi"
 version = "0.19.2"
 description = "An autocompletion tool for Python that can be used for text editors."
@@ -1979,6 +2033,45 @@ gmpy = ["gmpy2 (>=2.1.0a4)"]
 tests = ["pytest (>=4.6)"]
 
 [[package]]
+name = "mygene"
+version = "3.2.2"
+description = "Python Client for MyGene.Info services."
+optional = false
+python-versions = "*"
+files = [
+    {file = "mygene-3.2.2-py2.py3-none-any.whl", hash = "sha256:18d85d1b28ecee2be31d844607fb0c5f7d7c58573278432df819ee2a5e88fe46"},
+    {file = "mygene-3.2.2.tar.gz", hash = "sha256:e729cabbc28cf5afb221bca1ab637883b375cb1a3e2f067587ec79f71affdaea"},
+]
+
+[package.dependencies]
+biothings-client = ">=0.2.6"
+
+[[package]]
+name = "narwhals"
+version = "2.18.1"
+description = "Extremely lightweight compatibility layer between dataframe libraries"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "narwhals-2.18.1-py3-none-any.whl", hash = "sha256:a0a8bb80205323851338888ba3a12b4f65d352362c8a94be591244faf36504ad"},
+    {file = "narwhals-2.18.1.tar.gz", hash = "sha256:652a1fcc9d432bbf114846688884c215f17eb118aa640b7419295d2f910d2a8b"},
+]
+
+[package.extras]
+cudf = ["cudf-cu12 (>=24.10.0)"]
+dask = ["dask[dataframe] (>=2024.8)"]
+duckdb = ["duckdb (>=1.1)"]
+ibis = ["ibis-framework (>=6.0.0)", "packaging", "pyarrow-hotfix", "rich"]
+modin = ["modin"]
+pandas = ["pandas (>=1.1.3)"]
+polars = ["polars (>=0.20.4)"]
+pyarrow = ["pyarrow (>=13.0.0)"]
+pyspark = ["pyspark (>=3.5.0)"]
+pyspark-connect = ["pyspark[connect] (>=3.5.0)"]
+sql = ["duckdb (>=1.1)", "sqlparse"]
+sqlframe = ["sqlframe (>=3.22.0,!=3.39.3)"]
+
+[[package]]
 name = "natsort"
 version = "8.4.0"
 description = "Simple yet flexible natural sorting in Python."
@@ -2494,6 +2587,29 @@ files = [
     {file = "platformdirs-4.9.4-py3-none-any.whl", hash = "sha256:68a9a4619a666ea6439f2ff250c12a853cd1cbd5158d258bd824a7df6be2f868"},
     {file = "platformdirs-4.9.4.tar.gz", hash = "sha256:1ec356301b7dc906d83f371c8f487070e99d3ccf9e501686456394622a01a934"},
 ]
+
+[[package]]
+name = "plotly"
+version = "6.6.0"
+description = "An open-source interactive data visualization library for Python"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "plotly-6.6.0-py3-none-any.whl", hash = "sha256:8d6daf0f87412e0c0bfe72e809d615217ab57cc715899a1e5145135a7800d1d0"},
+    {file = "plotly-6.6.0.tar.gz", hash = "sha256:b897f15f3b02028d69f755f236be890ba950d0a42d7dfc619b44e2d8cea8748c"},
+]
+
+[package.dependencies]
+narwhals = ">=1.15.1"
+packaging = "*"
+
+[package.extras]
+dev = ["plotly[dev-optional]"]
+dev-build = ["build", "jupyter", "plotly[dev-core]"]
+dev-core = ["pytest", "requests", "ruff (==0.11.12)"]
+dev-optional = ["anywidget", "colorcet", "fiona (<=1.9.6)", "geopandas", "inflect", "numpy", "orjson", "pandas", "pdfrw", "pillow", "plotly-geo", "plotly[dev-build]", "plotly[kaleido]", "polars[timezone]", "pyarrow", "pyshp", "pytz", "scikit-image", "scipy", "shapely", "statsmodels", "vaex", "xarray"]
+express = ["numpy"]
+kaleido = ["kaleido (>=1.1.0)"]
 
 [[package]]
 name = "prometheus-client"
@@ -3809,4 +3925,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "e7c36fd8b792f7bb4f7eea10cd2287ad8ff03195af91faccf5abbe3cc6313d9e"
+content-hash = "0b44b24728f5044b6875353b7dc6c34e4afeb6244c9aed8b67b5ed3fd2e8b218"
