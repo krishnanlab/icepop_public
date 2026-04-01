@@ -9,10 +9,12 @@ The code used to reproduce the analyses in the paper is available at: https://gi
 `python>=3.11,<3.12`
 
 ## Installation
-ICePop can be installed easily via pip from PyPI: `pip install icepop`
+ICePop requires `torch==2.1.1`. To enable GPU acceleration, which substantially speeds up metacell reconstruction, we recommend installing PyTorch following the official instructions on the [PyTorch website](https://pytorch.org/)￼to ensure compatibility with your system. Specifically, we used [`torch-2.1.1+cu121`](https://download.pytorch.org/whl/cu121/torch-2.1.1%2Bcu121-cp311-cp311-linux_x86_64.whl#sha256=83bfe1134dfa8ab86553c15da5dffa190a86d822afafe8ea6de1169c10d971aa) in the paper.
+
+After installing torch, then install ICePop via pip: `pip install https://github.com/krishnanlab/icepop_public`
 
 ## Run ICePop
-Before running the analysis, we recommend downloading the processed data from [Zenodo](https://github.com/krishnanlab/icepop_analysis).
+Before running the analysis, we recommend downloading the processed data from [Zenodo](TBD).
 
 Expand and place the downloaded files under `../data`, then run the following commands.
 
@@ -78,13 +80,23 @@ where `*` is trait name we assume magmaz file name is `*.genes.out`
 
 ### Step3: Enrichment Analysis and Interactive output
 ```
+# run all gene sets
 icepop interactive \
   --outdir ../results/TM_FACS \
-  --geneset_collections KEGG \
+  --geneset_collections All \
+  --adata_path ../data/TM_FACS/TM_FACS_cnt.h5ad
+
+or
+
+# run specific gene sets
+icepop interactive \
+  --outdir ../results/TM_FACS \
+  --geneset_collections BIOCARTA \
   --adata_path ../data/TM_FACS/TM_FACS_cnt.h5ad
 
 or 
 
+# custom gene sets
 icepop interactive \
   --outdir ../results/TM_FACS \
   --geneset_collections none \
@@ -95,7 +107,7 @@ icepop interactive \
 #### Input options
 1. `--outdir` (str) Output directory for association results and metacell results
 2. `--geneset_collections` (str) All, 'BIOCARTA', 'KEGG', 'REACTOME', 'WIKIPATHWAYS', 'MIR', 'TF', 'GOBP', 'GOCC', 'GOMF', 'HP'
-3. `--geneset_path` (str) path to custom gmt file
+3. `--geneset_path` (str) path to custom gmt file if `--geneset_collections` is set to `none`
 4. `--adata_path` (str) path to AnnData file containing single-cell expression ***count*** data
 
 #### Outputs
