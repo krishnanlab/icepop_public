@@ -47,7 +47,7 @@ this step need gpu for faster speed
 ```
 icepop association \
     --h5ad ../data/TM_FACS/TM_FACS_cnt.h5ad \
-    --mc_assign ../results/TM_FACS_mc/mc_assign.csv \
+    --mc_assign ../results/TM_FACS/mc_assign.csv \
     --magmaz ../data/magmaz/asd.genes.out \
     --sp mmusculus \
     --outdir ../results/TM_FACS
