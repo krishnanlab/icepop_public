@@ -1,5 +1,5 @@
 # ICePop: Metacell-informative Cell Population
-This repository contains source code for ICePop ([DOI](TBD)). 
+This repository contains source code for ICePop paper ([link](https://doi.org/10.64898/2026.04.01.715877)). 
 
 The data used in this study are available on [Zenodo](https://zenodo.org/records/19238928)
 
